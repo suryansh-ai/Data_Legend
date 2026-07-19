@@ -8,8 +8,12 @@ _APP_DIR = os.path.dirname(_PAGES_DIR)
 _PROJECT_ROOT = os.path.dirname(_APP_DIR)
 sys.path.insert(0, _APP_DIR)
 sys.path.insert(0, _PROJECT_ROOT)
-from components.css import inject_css, nav
-from utils.data_loader import load_facilities, get_facility_by_id
+
+try:
+    from components.css import inject_css, nav
+    from utils.data_loader import load_facilities, get_facility_by_id
+except Exception:
+    pass
 
 try:
     from utils.lakebase import LakebaseClient

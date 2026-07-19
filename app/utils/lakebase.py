@@ -19,27 +19,26 @@ class LakebaseClient:
 
     def _connect(self):
         """Establish database connection."""
+        self._init_memory_store()
         try:
             import psycopg2
 
-            # Lakebase connection details from environment
+            host = os.getenv("LAKEBASE_HOST", "")
+            if not host:
+                return
+
             self.connection = psycopg2.connect(
-                host=os.getenv("LAKEBASE_HOST", "localhost"),
+                host=host,
                 port=os.getenv("LAKEBASE_PORT", "5432"),
                 database=os.getenv("LAKEBASE_DB", "data_legend"),
                 user=os.getenv("LAKEBASE_USER", "postgres"),
                 password=os.getenv("LAKEBASE_PASSWORD", ""),
+                connect_timeout=5,
             )
 
-            # Create tables if they don't exist
             self._init_schema()
 
-        except ImportError:
-            # psycopg2 not installed — use in-memory fallback
-            self.connection = None
-            self._init_memory_store()
-        except Exception as e:
-            # Connection failed — use in-memory fallback
+        except Exception:
             self.connection = None
             self._init_memory_store()
 

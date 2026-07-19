@@ -8,11 +8,15 @@ _APP_DIR = os.path.dirname(_PAGES_DIR)
 _PROJECT_ROOT = os.path.dirname(_APP_DIR)
 sys.path.insert(0, _APP_DIR)
 sys.path.insert(0, _PROJECT_ROOT)
-from components.css import inject_css, nav
-from utils.data_loader import load_facilities
-import plotly.graph_objects as go
-import plotly.express as px
-import pandas as pd
+
+try:
+    from components.css import inject_css, nav
+    from utils.data_loader import load_facilities
+    import plotly.graph_objects as go
+    import plotly.express as px
+    import pandas as pd
+except Exception:
+    pass
 
 st.set_page_config(page_title="Data Readiness — Data Legend", page_icon="📊", layout="wide")
 inject_css()

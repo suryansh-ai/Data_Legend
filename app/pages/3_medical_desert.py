@@ -2,15 +2,18 @@
 Medical Desert — Map healthcare gaps across India.
 """
 import streamlit as st
-import pandas as pd
 import sys, os
 _PAGES_DIR = os.path.dirname(os.path.abspath(__file__))
 _APP_DIR = os.path.dirname(_PAGES_DIR)
 _PROJECT_ROOT = os.path.dirname(_APP_DIR)
 sys.path.insert(0, _APP_DIR)
 sys.path.insert(0, _PROJECT_ROOT)
-from components.css import inject_css, nav
-from utils.data_loader import load_facilities, get_dataset_stats
+
+try:
+    from components.css import inject_css, nav
+    from utils.data_loader import load_facilities, get_dataset_stats
+except Exception:
+    pass
 
 st.set_page_config(page_title="Medical Desert — Data Legend", page_icon="🗺️", layout="wide")
 inject_css()

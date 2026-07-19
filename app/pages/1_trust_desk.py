@@ -8,13 +8,17 @@ _APP_DIR = os.path.dirname(_PAGES_DIR)
 _PROJECT_ROOT = os.path.dirname(_APP_DIR)
 sys.path.insert(0, _APP_DIR)
 sys.path.insert(0, _PROJECT_ROOT)
-from components.css import inject_css, nav
-from utils.data_loader import load_facilities, get_unique_states, get_unique_cities
+
+try:
+    from components.css import inject_css, nav
+    from utils.data_loader import load_facilities, get_unique_states, get_unique_cities
+except Exception:
+    pass
 
 try:
     import mlflow
     MLFLOW_AVAILABLE = True
-except ImportError:
+except Exception:
     MLFLOW_AVAILABLE = False
 
 st.set_page_config(page_title="Trust Desk — Data Legend", page_icon="🔍", layout="wide")

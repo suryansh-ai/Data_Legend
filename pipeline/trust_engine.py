@@ -12,7 +12,7 @@ from typing import Any
 try:
     import mlflow
     MLFLOW_AVAILABLE = True
-except ImportError:
+except Exception:
     MLFLOW_AVAILABLE = False
 
 

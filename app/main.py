@@ -2,15 +2,28 @@
 Data Legend — Home
 """
 import streamlit as st
-from components.css import inject_css, nav
-from utils.data_loader import load_facilities, get_dataset_stats
 
 st.set_page_config(page_title="Data Legend", page_icon="🏥", layout="wide")
-inject_css()
-nav("home")
+
+try:
+    from components.css import inject_css, nav
+    inject_css()
+    nav("home")
+except Exception:
+    pass
+
+try:
+    from utils.data_loader import load_facilities, get_dataset_stats
+except Exception:
+    load_facilities = None
+    get_dataset_stats = None
 
 
 def main():
+    if load_facilities is None or get_dataset_stats is None:
+        st.error("Failed to load core modules.")
+        return
+
     facilities = load_facilities()
     stats = get_dataset_stats(facilities)
 

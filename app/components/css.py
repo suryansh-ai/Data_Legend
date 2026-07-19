@@ -709,9 +709,12 @@ def nav(active="home"):
                 (active == "desert" and "3_medical" in page) or
                 (active == "readiness" and "4_data" in page)
             )
-            st.page_link(
-                page,
-                label=label,
-                icon=nav_icons.get(page, "📌"),
-                disabled=is_active,
-            )
+            try:
+                st.page_link(
+                    page,
+                    label=label,
+                    icon=nav_icons.get(page, "📌"),
+                    disabled=is_active,
+                )
+            except Exception:
+                pass

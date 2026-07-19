@@ -6,7 +6,11 @@ from .data_loader import (
     get_unique_cities,
     get_dataset_stats,
 )
-from .lakebase import LakebaseClient
+
+try:
+    from .lakebase import LakebaseClient
+except Exception:
+    LakebaseClient = None
 
 __all__ = [
     "load_facilities",
