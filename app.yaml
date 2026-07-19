@@ -1,14 +1,7 @@
 name: data-legend
-description: Building the Trust Layer for Indian Healthcare
+description: Healthcare Facility Intelligence App
 
-command:
-  - streamlit
-  - run
-  - app/main.py
-  - --server.port
-  - "8080"
-  - --server.address
-  - "0.0.0.0"
+command: ["streamlit", "run", "app/main.py", "--server.port", "8080", "--server.address", "0.0.0.0"]
 
 env:
   - name: STREAMLIT_SERVER_ENABLE_CORS
@@ -19,7 +12,3 @@ env:
     value: "false"
   - name: MLFLOW_TRACKING_URI
     value: "databricks"
-
-permissions:
-  - level: "CAN_VIEW"
-    principal: "users"
