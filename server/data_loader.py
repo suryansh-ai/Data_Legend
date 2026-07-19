@@ -1,10 +1,8 @@
 """
-Data Loader — Multi-source data loading with fallback chain.
+Data Loader — Multi-source data loading with smart fallback.
 
-Priority:
-  1. Parquet files (fastest, 0ms cold start)
-  2. SQL Warehouse (Databricks, for complex analytics)
-  3. Empty DataFrame (graceful degradation)
+On Databricks: SQL Warehouse FIRST (full 10K dataset), then parquet.
+Local dev: Parquet FIRST (fast), then SQL Warehouse (if available).
 """
 
 import os
@@ -14,22 +12,21 @@ from typing import Optional
 
 _df: Optional[pd.DataFrame] = None
 
+# Detect if we're on Databricks
+_ON_DATABRICKS = bool(os.getenv("DATABRICKS_WAREHOUSE_ID"))
+
 
 def _find_data_dir() -> str:
     """Find the data directory regardless of where the app is run from."""
     candidates = [
-        # Relative to this file: server/../data
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"),
-        # Relative to CWD
         os.path.join(os.getcwd(), "data"),
-        # Absolute paths for Databricks
         "/tmp/databricks/apps/data",
         os.path.join(os.getenv("HOME", ""), "data"),
     ]
     for path in candidates:
         if os.path.isdir(path):
             return path
-    # Last resort: CWD
     return os.path.join(os.getcwd(), "data")
 
 
@@ -40,19 +37,39 @@ def _data_path(filename: str) -> str:
     return os.path.join(_DATA_DIR, filename)
 
 
-def load_facilities() -> pd.DataFrame:
-    """Load facilities from parquet — instant."""
-    global _df
-    if _df is not None and not _df.empty:
-        return _df
+def _ensure_trust_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """If trust columns are missing (raw Marketplace data), compute them."""
+    if "_trust_score" in df.columns and "_trust_signal" in df.columns:
+        return df
 
+    print("[data] Trust columns missing — computing from raw data...")
+    try:
+        from server.trust_engine import score_facility
+        scores = []
+        for _, row in df.iterrows():
+            result = score_facility(row.to_dict())
+            scores.append(result)
+        df["_trust_score"] = [s.get("overall_score", 0) for s in scores]
+        df["_trust_signal"] = [s.get("trust_label", "unknown") for s in scores]
+        print(f"[data] Computed trust scores for {len(df)} facilities")
+    except Exception as e:
+        print(f"[data] Could not compute trust scores: {e}")
+        df["_trust_score"] = 0
+        df["_trust_signal"] = "unknown"
+
+    return df
+
+
+def _load_from_parquet() -> Optional[pd.DataFrame]:
+    """Try loading from local parquet files."""
     for fname in ["facilities_scored.parquet", "facilities.parquet"]:
         fpath = _data_path(fname)
         if os.path.exists(fpath):
             try:
-                _df = pd.read_parquet(fpath)
-                print(f"[data] Loaded {len(_df)} facilities from {fpath}")
-                return _df
+                df = pd.read_parquet(fpath)
+                if len(df) > 0:
+                    print(f"[data] Loaded {len(df)} facilities from parquet: {fpath}")
+                    return df
             except Exception as e:
                 print(f"[data] Error loading {fpath}: {e}")
 
@@ -62,26 +79,86 @@ def load_facilities() -> pd.DataFrame:
         parquet_files = globmod.glob(os.path.join(repo_root, "**", "*.parquet"), recursive=True)
         for fpath in parquet_files:
             try:
-                _df = pd.read_parquet(fpath)
-                if len(_df) > 100:
-                    print(f"[data] Loaded {len(_df)} facilities from fallback: {fpath}")
-                    return _df
+                df = pd.read_parquet(fpath)
+                if len(df) > 100:
+                    print(f"[data] Loaded {len(df)} facilities from fallback parquet: {fpath}")
+                    return df
             except Exception:
                 continue
     except Exception:
         pass
 
-    # Fallback: try SQL Warehouse
+    return None
+
+
+def _load_from_warehouse() -> Optional[pd.DataFrame]:
+    """Try loading from Databricks SQL Warehouse."""
     try:
-        from server.sql_connector import warehouse_query_df, is_available
-        if is_available():
-            df = warehouse_query_df("SELECT * FROM facilities")
-            if df is not None and not df.empty:
-                _df = df
-                print(f"[data] Loaded {len(_df)} facilities from SQL Warehouse")
-                return _df
-    except Exception:
-        pass
+        from server.sql_connector import init_warehouse, warehouse_query_df, get_facilities_table, is_available
+
+        if not is_available():
+            init_warehouse()
+
+        if not is_available():
+            print("[data] SQL Warehouse not available")
+            return None
+
+        table = get_facilities_table()
+        print(f"[data] Querying SQL Warehouse: {table}")
+
+        # First check if trust columns exist
+        df_check = warehouse_query_df(f"SELECT * FROM {table} LIMIT 1")
+        if df_check is not None and len(df_check) > 0:
+            cols = list(df_check.columns)
+            has_trust = "_trust_score" in cols and "_trust_signal" in cols
+
+            if has_trust:
+                df = warehouse_query_df(f"SELECT * FROM {table}")
+            else:
+                # Load in chunks to avoid memory issues with 10K rows
+                df = warehouse_query_df(f"SELECT * FROM {table}")
+                if df is not None:
+                    df = _ensure_trust_columns(df)
+
+            if df is not None and len(df) > 0:
+                print(f"[data] Loaded {len(df)} facilities from SQL Warehouse ({table})")
+                return df
+    except Exception as e:
+        print(f"[data] SQL Warehouse error: {e}")
+
+    return None
+
+
+def load_facilities() -> pd.DataFrame:
+    """Load facilities — SQL Warehouse first on Databricks, parquet first locally."""
+    global _df
+    if _df is not None and not _df.empty:
+        return _df
+
+    if _ON_DATABRICKS:
+        # On Databricks: SQL Warehouse FIRST (full 10K), parquet as fallback
+        df = _load_from_warehouse()
+        if df is not None and not df.empty:
+            _df = df
+            return _df
+
+        print("[data] SQL Warehouse failed, falling back to parquet...")
+        df = _load_from_parquet()
+        if df is not None and not df.empty:
+            _df = df
+            return _df
+    else:
+        # Local dev: parquet FIRST (fast), SQL Warehouse as fallback
+        df = _load_from_parquet()
+        if df is not None and not df.empty:
+            _df = df
+            return _df
+
+        print("[data] Parquet not found, trying SQL Warehouse...")
+        df = _load_from_warehouse()
+        if df is not None and not df.empty:
+            _df = df
+            return _df
 
     print("[data] WARNING: No data loaded from any source!")
     _df = pd.DataFrame()
@@ -121,12 +198,12 @@ def get_dataset_stats() -> dict:
         "states": int(df["address_stateOrRegion"].nunique()),
         "cities": int(df["address_city"].nunique()),
         "with_description": int(df["description"].notna().sum()),
-        "with_capability": int(df["capability"].notna().sum()),
-        "with_procedure": int(df["procedure"].notna().sum()),
-        "with_equipment": int(df["equipment"].notna().sum()),
-        "with_specialties": int(df["specialties"].notna().sum()),
-        "with_doctors": int(df["numberDoctors"].notna().sum()),
-        "with_capacity": int(df["capacity"].notna().sum()),
+        "with_capability": int(df["capability"].notna().sum()) if "capability" in df.columns else 0,
+        "with_procedure": int(df["procedure"].notna().sum()) if "procedure" in df.columns else 0,
+        "with_equipment": int(df["equipment"].notna().sum()) if "equipment" in df.columns else 0,
+        "with_specialties": int(df["specialties"].notna().sum()) if "specialties" in df.columns else 0,
+        "with_doctors": int(df["numberDoctors"].notna().sum()) if "numberDoctors" in df.columns else 0,
+        "with_capacity": int(df["capacity"].notna().sum()) if "capacity" in df.columns else 0,
     }
 
 
@@ -171,7 +248,7 @@ def get_data_source_info() -> dict:
     df = get_facilities_df()
     source = "none"
     if not df.empty:
-        source = "loaded"
+        source = "sql_warehouse" if _ON_DATABRICKS and _df is not None else "parquet"
     try:
         from server.sql_connector import is_available as wh_available
         warehouse = wh_available()
@@ -186,6 +263,7 @@ def get_data_source_info() -> dict:
         "data_source": source,
         "facility_count": len(df) if not df.empty else 0,
         "data_dir": _DATA_DIR,
+        "on_databricks": _ON_DATABRICKS,
         "warehouse_available": warehouse,
         "persistence_backend": persistence,
     }
