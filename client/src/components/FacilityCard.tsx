@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Users, Building2, ChevronRight } from 'lucide-react'
 import TrustBadge from './TrustBadge'
@@ -8,7 +9,12 @@ interface FacilityCardProps {
   facility: Facility
 }
 
-export default function FacilityCard({ facility }: FacilityCardProps) {
+const FacilityCard = memo(function FacilityCard({ facility }: FacilityCardProps) {
+  // Only re-render if facility identity or score changes
+}, (prevProps, nextProps) =>
+  prevProps.facility.unique_id === nextProps.facility.unique_id &&
+  prevProps.facility._trust_score === nextProps.facility._trust_score
+) as typeof memo<FacilityCardProps>
   return (
     <Link
       to={`/facility/${facility.unique_id}`}
@@ -53,4 +59,6 @@ export default function FacilityCard({ facility }: FacilityCardProps) {
       </div>
     </Link>
   )
-}
+})
+
+export default FacilityCard

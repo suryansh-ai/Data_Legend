@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -74,6 +75,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Compress all responses (API + SPA) for faster downloads
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # --- API Routes ---
 app.include_router(facilities.router, prefix="/api")
 app.include_router(trust.router, prefix="/api")
@@ -100,7 +104,7 @@ if DIST_DIR.exists():
     # Mount static assets at /assets/*
     ASSETS_DIR = DIST_DIR / "assets"
     if ASSETS_DIR.exists():
-        app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="static-assets")
+        app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR), check_dir=False), name="static-assets")
 
     # Serve favicon and other root files
     @app.get("/favicon.svg")

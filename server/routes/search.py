@@ -5,7 +5,7 @@ Search API — Natural language search across facilities.
 import math
 import pandas as pd
 from fastapi import APIRouter, Query
-from server.data_loader import get_facilities_df, _STATE_COL, _CITY_COL
+from server.data_loader import get_facilities_df, _lowered_series, _STATE_COL, _CITY_COL
 
 router = APIRouter(tags=["search"])
 
@@ -26,13 +26,13 @@ def search_facilities(
     cc = _CITY_COL or "city"
     q_lower = q.lower()
 
-    # Extract columns and lowercase them for fast comparison
-    names = df["name"].fillna("").astype(str).str.lower()
-    descs = df["description"].fillna("").astype(str).str.lower()
-    cities = df[cc].fillna("").astype(str).str.lower() if cc in df.columns else pd.Series("", index=df.index)
-    states = df[sc].fillna("").astype(str).str.lower() if sc in df.columns else pd.Series("", index=df.index)
-    caps = df["capability"].fillna("").astype(str).str.lower()
-    specs = df["specialties"].fillna("").astype(str).str.lower()
+    # Extract columns and lowercase them with cached series for faster repeated calls
+    names = _lowered_series("name").reindex(df.index)
+    descs = _lowered_series("description").reindex(df.index)
+    cities = _lowered_series(cc).reindex(df.index) if cc in df.columns else pd.Series("", index=df.index)
+    states = _lowered_series(sc).reindex(df.index) if sc in df.columns else pd.Series("", index=df.index)
+    caps = _lowered_series("capability").reindex(df.index)
+    specs = _lowered_series("specialties").reindex(df.index)
 
     # Calculate relevance scores using pandas vectorization (50x faster than iterrows)
     score_series = pd.Series(0.0, index=df.index)

@@ -3,6 +3,7 @@ Trust Engine — Claim-level trust scoring for healthcare facility capabilities.
 """
 
 import json
+from copy import deepcopy
 from typing import Any
 
 try:
@@ -10,6 +11,8 @@ try:
     MLFLOW_AVAILABLE = True
 except Exception:
     MLFLOW_AVAILABLE = False
+
+_trust_cache: dict[str, dict] = {}
 
 CAPABILITY_KEYWORDS = {
     "icu": ["icu", "intensive care", "critical care", "ccu"],
@@ -81,6 +84,10 @@ def _extract_snippet(text: str, keyword: str, ctx: int = 80) -> str:
 
 
 def score_facility(facility: dict) -> dict:
+    facility_id = str(facility.get("unique_id", "") or "")
+    if facility_id and facility_id in _trust_cache:
+        return deepcopy(_trust_cache[facility_id])
+
     description = str(facility.get("description", "") or "")
     cap_items = _parse_json_field(facility.get("capability"))
     proc_items = _parse_json_field(facility.get("procedure"))
@@ -94,6 +101,7 @@ def score_facility(facility: dict) -> dict:
         "equipment": " ".join(equip_items),
         "specialties": " ".join(spec_items),
     }
+    lower_texts = {name: text.lower() for name, text in field_texts.items()}
 
     capabilities = {}
     total_claims = 0
@@ -108,13 +116,14 @@ def score_facility(facility: dict) -> dict:
         for field_name, field_text in field_texts.items():
             if not field_text:
                 continue
+            field_text_lower = lower_texts[field_name]
             for kw in cap_keywords:
-                if kw in field_text.lower():
+                if kw in field_text_lower:
                     for pat in NEGATION_PATTERNS:
-                        if pat in field_text.lower() and kw in field_text.lower():
+                        if pat in field_text_lower:
                             negated = True
                     for pat in ASPIRATIONAL_PATTERNS:
-                        if pat in field_text.lower() and kw in field_text.lower():
+                        if pat in field_text_lower:
                             aspirational = True
                     snippet = _extract_snippet(field_text, kw)
                     evidence.append({
@@ -178,6 +187,9 @@ def score_facility(facility: dict) -> dict:
             "corroborated_claims": corroborated_claims,
         },
     }
+
+    if facility_id:
+        _trust_cache[facility_id] = deepcopy(result)
 
     if MLFLOW_AVAILABLE:
         try:

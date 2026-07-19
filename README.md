@@ -1,458 +1,418 @@
-# 🏥 Data Legend — Healthcare Facility Intelligence Platform for India
+<div align="center">
+  <br />
+  <br />
+  <img src="https://img.shields.io/badge/status-production%20ready-0f766e?style=flat-square" alt="Status" />
+  <img src="https://img.shields.io/badge/databricks-apps-FF3621?style=flat-square&logo=databricks" alt="Databricks Apps" />
+  <img src="https://img.shields.io/badge/react-19-61DAFB?style=flat-square&logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/fastapi-0.115-009688?style=flat-square&logo=fastapi" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/typescript-5.7-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License" />
+  
+  <br />
+  <br />
 
-> **Trust-first healthcare discovery. Analyze — Verify — Refer — Track.**
+  <h1 align="center" style="font-size: 3.5rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 0.5rem;">
+    🏥 Data Legend
+  </h1>
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+  <p align="center" style="font-size: 1.25rem; font-weight: 500; color: #64748b; max-width: 600px; margin: 0 auto;">
+    <strong>Healthcare Facility Intelligence Platform</strong><br />
+    Trust scoring · Coverage gap analysis · Smart referrals · NGO planning
+  </p>
+  
+  <br />
+  
+  <p align="center">
+    <a href="#-overview">Overview</a> •
+    <a href="#-key-features">Features</a> •
+    <a href="#-tech-stack">Tech Stack</a> •
+    <a href="#-architecture">Architecture</a> •
+    <a href="#-quick-start">Quick Start</a> •
+    <a href="#-deployment">Deployment</a> •
+    <a href="#-api-reference">API</a>
+  </p>
+  
+  <br />
+</div>
 
-Data Legend is an open-source platform that **scores, verifies, and analyzes** healthcare facility capability claims across **9,947 Indian hospitals and clinics** using claim-level trust analysis. Built for the [Databricks Apps & Agents for Good 2026](https://www.databricks.com/) hackathon.
+---
 
-## ✨ Features
+## 📋 Overview
 
-### 🔍 Facility Trust Desk
-Search, filter, and score facility claims with evidence breakdown. View trust radar charts, capability corroboration analysis, and override trust scores with audit notes.
+**Data Legend** transforms messy Indian healthcare facility records into a structured, trust-rated intelligence system. Built for the **Databricks Apps & Agents for Good 2026** hackathon, it analyzes **9,947+ clinics** across **34+ states/UTs** to verify capability claims, detect coverage deserts, and power smart referral workflows.
 
-### 🤖 AI Referral & Triage Copilot
-Enter patient symptoms in plain language (including **Hindi/Hinglish** support) to get:
+> **Core Mission:** Build the trust layer for Indian healthcare — corroborate what facilities *actually* have vs. what they merely *claim*.
+
+### Who It's For
+
+| Role | Value |
+|------|-------|
+| 🏛️ **Health Planners** | Identify coverage gaps, allocate resources to desert regions |
+| 🩺 **Referral Coordinators** | Verify facility capabilities before referring patients |
+| 🤝 **NGOs** | Map infrastructure deficits, plan intervention zones |
+| 📊 **Analysts** | Audit data readiness, export verified facility shortlists |
+| 🏥 **Hospital Administrators** | Showcase corroborated capabilities to referral networks |
+
+---
+
+## 🚀 Key Features
+
+### 1. 🛡️ **Facility Trust Desk**
+Search & filter across **9,947+ facilities** with claim-level trust scoring:
+- **CORROBORATED** ✅ — Double-verified across multiple data fields
+- **CLAIMED_ONLY** ⚠️ — Stated in one source only
+- **WEAK** ✖️ — Negated or aspirational ("planned", "coming soon")
+- Batch score facilities, annotate with audit notes, build shareable shortlists
+- Export shortlists as CSV for offline coordination
+
+### 2. 🗺️ **Medical Desert Detection**
+Identify healthcare coverage voids across Indian states:
+- Interactive **Leaflet map** with marker clustering for 10K+ facilities
+- Filter by **ICU availability**, **bed capacity**, or trust level
+- State-wise trust rankings with low-coverage alerts
+- Choropleth-ready analytics for priority intervention zones
+
+### 3. 🤖 **AI Triage & Referral**
+Natural language symptom assessment with Hindi/Hinglish support:
+- "सीने में दर्द" → cardiology referral
+- "बुखार और खांसी" → general medicine
 - Urgency classification (Emergent → Routine)
-- Diagnostic specialty matching with confidence scores
-- Red flag detection for critical conditions
-- First-aid advisory guidelines
-- AI-powered hospital recommendations ranked by composite scoring
+- Automatic hospital matching by specialty + distance + trust
 
-### 🏨 Smart Booking Engine
-Search available time slots, book appointments with confirmation codes, manage status (pending → confirmed → completed), and track patient outcomes.
+### 4. 📅 **Smart Booking Engine**
+End-to-end appointment management:
+- Specialty-based slot availability
+- Confirmation codes & status tracking
+- Integration with trust scores for confident referrals
+- Outcome recording for follow-up analysis
 
-### 🧭 NGO Planning Panel
-Analyze regional resource gaps, essential capability coverage (emergency, maternity, ICU, surgery, etc.), district health indicators (NFHS-5), and get intervention plans with priority recommendations.
+### 5. 📊 **Data Readiness Audit**
+Transparent data quality metrics:
+- Column-level completeness with visual progress bars
+- Trust signal distribution breakdown
+- Critical field warnings for missing data
+- Automated data source health monitoring
 
-### 📊 Medical Desert Analysis
-Interactive choropleth map showing state-level trust coverage, low-trust regions needing attention, and district-level health indicator overlays.
+### 6. 🏢 **NGO Planning Dashboard**
+Resource gap analysis for non-profits:
+- Doctor-to-bed ratios by region
+- Facility density heat mapping
+- Infrastructure deficit identification
+- Capacity vs. population need analysis
 
-### 🩺 Facility Detail Deep Dive
-Trust radar visualization, evidence table with snippet-level breakdown, analyst notes, shortlisting, override management, and trust impact from outcomes.
+---
 
-### 📋 Data Readiness Dashboard
-Full data quality audit: column completeness, trust signal distribution, facility coverage by state, and data source status.
-
-### 📈 Outcome Tracking & Learning Loop
-Record patient outcomes, calculate trust impact based on satisfaction and improvement rates, and derive insights across specialties and facilities.
-
-### 🎤 Voice Input Support
-Speech-to-text for symptom input with multi-language support (English, Hindi, Bengali, Tamil, Telugu, Marathi, Urdu, Gujarati, Kannada, Malayalam, Punjabi).
-
-### 🧠 AI Integration
-Databricks Foundation Model API integration (Llama 3.3 70B, Mixtral) for:
-- Enhanced triage assessment
-- Hospital recommendation explanations
-- Facility quality analysis
-- Regional health insights generation
-
-## 📊 Data Architecture
-
-Data Legend uses a **three-layer data architecture** with intelligent fallback:
-
-| Layer | Technology | Use Case |
-|-------|-----------|----------|
-| **Primary** | Databricks SQL Warehouse | Full 10K dataset on Databricks Apps |
-| **Secondary** | Parquet files (local) | Fast local development & staging |
-| **Tertiary** | Lakebase (Postgres) / SQLite | Analyst notes, overrides, shortlists |
-
-**11,977 capability claims analyzed** across 16 categories using 5 evidence fields:
-
-| Capability | Evidence Sources |
-|------------|-----------------|
-| ICU, NICU, Emergency | Description, Capability, Equipment |
-| Maternity, Surgery, Trauma | Description, Procedure, Specialties |
-| Cardiology, Oncology, Dialysis | Description, Capability, Procedure |
-| Radiology, Laboratory, Pharmacy | Description, Equipment, Specialties |
-| Ophthalmology, Orthopedics, Pediatrics, Dental | Description, Specialties |
-
-### Trust Signal Levels
-
-| Signal | Meaning | Color |
-|--------|---------|-------|
-| **CORROBORATED** | Multiple fields confirm the claim (≥2 sources) | 🟢 Green |
-| **CLAIMED_ONLY** | Single field mentions it; needs verification | 🟡 Amber |
-| **WEAK** | Negated ("not available") or aspirational ("planned") language | 🔴 Red |
-| **UNKNOWN** | No evidence found in any field | ⚪ Gray |
-
-### Data Sources
-
-- **Facilities Dataset**: 9,947 hospitals and clinics across 34 Indian states/UTs
-- **NFHS-5 District Health**: 707 districts with institutional birth rates, ANC visits, health insurance, electricity coverage, and more
-- **Real-time SQL Warehouse**: Auto-discovers Unity Catalog tables in Databricks
-
-## 🛠️ Tech Stack
+## 🧰 Tech Stack
 
 ### Frontend
-- **React 19** with TypeScript & Vite
-- **Tailwind CSS** with dark mode support
-- **Recharts** for interactive data visualization
-- **Leaflet / React-Leaflet** for interactive maps
-- **Framer Motion** for animations & transitions
-- **Lucide React** for icons
-- **React Router v7** for client-side routing
+
+| Technology | Purpose |
+|---|---|
+| [React 19](https://react.dev/) | UI framework with concurrent features |
+| [TypeScript 5.7](https://www.typescriptlang.org/) | Type-safe development |
+| [Vite 6](https://vitejs.dev/) | Lightning-fast HMR & builds |
+| [Tailwind CSS 3.4](https://tailwindcss.com/) | Utility-first styling |
+| [Recharts 2.15](https://recharts.org/) | Declarative charting |
+| [Leaflet](https://leafletjs.com/) + [react-leaflet](https://react-leaflet.js.org/) | Interactive maps with clustering |
+| [Framer Motion 11](https://www.framer.com/motion/) | Animation & transitions |
+| [Lucide React](https://lucide.dev/) | Consistent iconography |
+| [clsx](https://github.com/lukeed/clsx) + [tailwind-merge](https://github.com/dcastil/tailwind-merge) | Class management |
 
 ### Backend
-- **FastAPI** (Python) with async support
-- **Pandas & PyArrow** for data processing
-- **MLflow 3** for experiment tracking & logging
-- **Databricks SDK** for Lakebase OAuth & SQL Warehouse
-- **psycopg2** for Postgres connectivity
 
-### ML/AI
-- **Rule-based Triage Engine**: Symptom→specialty mapping with Hindi/Hinglish support
-- **Recommendation Engine**: Composite scoring (trust × capability match × urgency × proximity × capacity × district health)
-- **Databricks Foundation Model API**: Llama 3.3 70B & Mixtral 8x7B for LLM-enhanced assessments
+| Technology | Purpose |
+|---|---|
+| [FastAPI 0.115+](https://fastapi.tiangolo.com/) | Async Python web framework |
+| [pandas 2.0+](https://pandas.pydata.org/) | Data manipulation |
+| [pyarrow](https://arrow.apache.org/) / [fastparquet](https://fastparquet.readthedocs.io/) | Parquet file I/O |
+| [MLflow 3.0+](https://mlflow.org/) | Trust scoring tracing |
+| [psycopg2](https://www.psycopg.org/) | Postgres (Lakebase) connector |
+| [databricks-sql-connector](https://docs.databricks.com/dev-tools/python-sql-connector.html) | SQL Warehouse queries |
+| [databricks-sdk](https://docs.databricks.com/dev-tools/sdk-python.html) | OAuth token generation |
 
-### Deployment
-- **Render** — FastAPI backend
-- **Vercel** — React frontend (from `client/`)
-- **Databricks Apps** — Unified deployment (retained)
+### Infrastructure
 
-## 🚀 Local Development
+| Service | Role |
+|---|---|
+| [Databricks Apps](https://www.databricks.com/product/apps) | Hosting & deployment |
+| [Databricks SQL Warehouse](https://www.databricks.com/product/sql-warehouse) | Primary data source (10K records) |
+| [Databricks Lakebase](https://www.databricks.com/product/lakebase) (Postgres) | User data persistence |
+| **SQLite** | Local development fallback |
+| **Parquet files** | Portable data distribution |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  Data Legend App                     │
+│  ┌──────────────────────────────────────────────┐   │
+│  │              FastAPI Backend                  │   │
+│  │  ┌─────────┐ ┌──────────┐ ┌──────────────┐  │   │
+│  │  │ Trust   │ │ Triage   │ │ Booking      │  │   │
+│  │  │ Engine  │ │ Engine   │ │ Engine       │  │   │
+│  │  └─────────┘ └──────────┘ └──────────────┘  │   │
+│  │  ┌─────────┐ ┌──────────┐ ┌──────────────┐  │   │
+│  │  │ Data    │ │ Recomm.  │ │ Outcome      │  │   │
+│  │  │ Loader  │ │ Engine   │ │ Tracker      │  │   │
+│  │  └─────────┘ └──────────┘ └──────────────┘  │   │
+│  │  ┌──────────────────────────────────────┐   │   │
+│  │  │         API Routes                    │   │   │
+│  │  │  /facilities  /trust  /search  /triage│   │   │
+│  │  │  /booking  /ngo  /outcomes  /ai /stats│   │   │
+│  │  └──────────────────────────────────────┘   │   │
+│  │  ┌──────────────────────────────────────┐   │   │
+│  │  │       Persistence Layer              │   │   │
+│  │  │  Lakebase (Postgres) ←→ SQLite        │   │   │
+│  │  └──────────────────────────────────────┘   │   │
+│  └──────────────────────────────────────────────┘   │
+│                      │                              │
+│                      ▼                              │
+│  ┌──────────────────────────────────────────────┐   │
+│  │              React SPA (Vite)                 │   │
+│  │  ┌──────┐ ┌──────────┐ ┌────────────────┐   │   │
+│  │  │Home  │ │Trust Desk│ │Medical Desert  │   │   │
+│  │  └──────┘ └──────────┘ └────────────────┘   │   │
+│  │  ┌────────┐ ┌────────┐ ┌──────────────┐   │   │
+│  │  │Triage  │ │Booking │ │NGO Dashboard  │   │   │
+│  │  └────────┘ └────────┘ └──────────────┘   │   │
+│  └──────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+         │              │              │
+         ▼              ▼              ▼
+   ┌─────────┐   ┌──────────┐   ┌──────────┐
+   │ Parquet │   │  SQL     │   │ Lakebase │
+   │ Files   │   │ Warehouse│   │(Postgres)│
+   └─────────┘   └──────────┘   └──────────┘
+```
+
+### Data Flow
+
+1. **Startup** → Backend loads facility dataset (SQL Warehouse on Databricks, Parquet locally)
+2. **Trust Scoring** → Claim-level verification across 5 data fields (description, capability, procedure, equipment, specialties)
+3. **Persistence** → User notes, overrides, and shortlists stored in Lakebase (Postgres) with SQLite fallback
+4. **Serving** → FastAPI serves React SPA + RESTful JSON APIs from a single process
+5. **Caching** → API responses cached client-side (30s TTL) for smooth navigation
+
+---
+
+## 🚦 Quick Start
+
+### Prerequisites
+
+- **Python 3.11+**
+- **Node.js 18+**
+- **npm 9+**
+
+### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/data-legend.git
-cd data-legend
+git clone https://github.com/suryansh-ai/Data_Legend.git
+cd Data_Legend
 
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Install Node dependencies
+# Install frontend dependencies & build SPA
 npm install
-
-# Build the React frontend
 npm run build
 
-# Run the FastAPI backend (serves the built frontend)
+# Start the application
 npm start
-# or
-uvicorn app:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-App runs at **http://localhost:8080**.
+Open **http://localhost:8080** in your browser.
 
-### Frontend Dev Mode (with HMR)
+### Development Mode
 
 ```bash
-cd client
+# Terminal 1: Backend
+uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+
+# Terminal 2: Frontend (Vite dev server)
 npm run dev
 ```
-Frontend hot-reloads at **http://localhost:5173** while FastAPI runs at **:8080**.
 
-## 📁 Project Structure
+The Vite dev server runs on `http://localhost:5173` with HMR, proxying API calls to port `8080`.
+
+---
+
+## 🧪 Project Structure
 
 ```
-├── app.py                      # FastAPI entry point + SPA middleware
-├── app.yaml                    # Databricks Apps deployment config
-├── package.json                # npm scripts & dependencies
-├── requirements.txt            # Python dependencies
-├── render.yaml                 # Render deployment config
-├── postcss.config.js           # PostCSS config
-├── tailwind.config.js          # Tailwind CSS theme
-├── tsconfig.json               # TypeScript config
-├── vite.config.ts              # Vite build config
-├──
-├── client/                     # React frontend
+Data_Legend/
+├── app.py                          # FastAPI entry point
+├── app.yaml                        # Databricks Apps deployment config
+├── requirements.txt                # Python dependencies
+├── package.json                    # npm scripts
+├── vite.config.ts                  # Vite configuration
+├── tailwind.config.js              # Tailwind CSS config
+├── tsconfig.json                   # TypeScript config
+├── Dockerfile                      # Multi-stage Docker build
+│
+├── client/                         # React Frontend (SPA)
 │   ├── index.html
-│   ├── vercel.json             # Vercel deployment config
-│   ├── src/
-│   │   ├── App.tsx             # Router + layout
-│   │   ├── main.tsx            # Entry point
-│   │   ├── index.css           # Tailwind base + custom styles
-│   │   ├── components/
-│   │   │   ├── Layout.tsx      # App shell (navbar + mobile drawer)
-│   │   │   ├── ThemeToggle.tsx # Light/dark/system theme
-│   │   │   ├── MapView.tsx     # Leaflet interactive map
-│   │   │   ├── EmergencyBox.tsx # Floating emergency contacts
-│   │   │   ├── VoiceInput.tsx  # Speech-to-text component
-│   │   │   ├── TrustBadge.tsx  # Trust signal badge
-│   │   │   ├── TrustChart.tsx  # Radar chart for capabilities
-│   │   │   ├── SearchBar.tsx   # Autocomplete search
-│   │   │   ├── DataTable.tsx   # Tabular data view
-│   │   │   ├── ExportButton.tsx # CSV export
-│   │   │   ├── LoadingSpinner.tsx
-│   │   │   └── EmptyState.tsx
-│   │   ├── pages/
-│   │   │   ├── Home.tsx        # Overview dashboard
-│   │   │   ├── TrustDesk.tsx   # Facility search & scoring
-│   │   │   ├── FacilityDetail.tsx # Deep dive with radar + evidence
-│   │   │   ├── Triage.tsx      # AI triage copilot
-│   │   │   ├── Booking.tsx     # Appointment booking
-│   │   │   ├── NGODashboard.tsx # NGO resource planning
-│   │   │   ├── MedicalDesert.tsx # Coverage gap map
-│   │   │   └── DataReadiness.tsx # Data quality audit
-│   │   ├── hooks/
-│   │   │   └── useVoiceInput.ts # Web Speech API hook
-│   │   └── lib/
-│   │       ├── api.ts          # API client
-│   │       ├── types.ts        # TypeScript interfaces
-│   │       └── utils.ts        # Helpers (cn, format, trust colors)
-│   └── dist/                   # Built frontend (served by FastAPI)
-├──
-├── server/                     # Python backend
-│   ├── data_loader.py          # Multi-source data loading with fallback
-│   ├── trust_engine.py         # Claim-level trust scoring (16 capabilities)
-│   ├── triage_engine.py        # Symptom→specialty mapping + Hindi support
-│   ├── recommendation_engine.py # Composite facility scoring
-│   ├── booking_engine.py       # Appointment scheduling & management
-│   ├── outcome_tracker.py      # Patient outcome recording & analytics
-│   ├── ai_service.py           # Databricks Foundation Model API wrapper
-│   ├── lakebase.py             # Persistence (Postgres/SQLite) with fallback
-│   ├── sql_connector.py        # Databricks SQL Warehouse connector
+│   └── src/
+│       ├── main.tsx                # React entry point
+│       ├── App.tsx                 # Router + lazy loading
+│       ├── index.css               # Tailwind + CSS variables
+│       ├── lib/
+│       │   ├── api.ts              # API client with caching
+│       │   ├── types.ts            # TypeScript interfaces
+│       │   ├── utils.ts            # Utilities (formatting, etc.)
+│       │   └── useDebounce.ts      # Debounce hook
+│       ├── components/
+│       │   ├── Layout.tsx          # Sidebar + header + theme
+│       │   ├── TrustBadge.tsx      # Trust score chip
+│       │   ├── FacilityCard.tsx    # Facility card
+│       │   ├── MapView.tsx         # Leaflet map + clustering
+│       │   ├── TrustChart.tsx      # Recharts radar/bar
+│       │   ├── SearchBar.tsx       # NL search input
+│       │   ├── DataTable.tsx       # Sortable table
+│       │   ├── EmptyState.tsx      # Empty state
+│       │   ├── LoadingSpinner.tsx  # Loading skeleton
+│       │   ├── ExportButton.tsx    # Export PDF/CSV
+│       │   ├── ThemeToggle.tsx     # Dark/light toggle
+│       │   └── EmergencyBox.tsx    # Emergency alert
+│       └── pages/
+│           ├── Home.tsx            # Overview + stats
+│           ├── TrustDesk.tsx       # Trust scoring + search
+│           ├── FacilityDetail.tsx  # Deep dive into facility
+│           ├── MedicalDesert.tsx   # Coverage gaps map
+│           ├── DataReadiness.tsx   # Data quality audit
+│           ├── Triage.tsx          # Symptom assessment
+│           ├── Booking.tsx         # Appointment booking
+│           └── NGODashboard.tsx    # NGO planning panel
+│
+├── server/                         # Python Backend
+│   ├── __init__.py
+│   ├── data_loader.py              # Multi-source data loading
+│   ├── trust_engine.py             # Claim-level trust scoring
+│   ├── triage_engine.py            # Symptom classification
+│   ├── booking_engine.py           # Appointment management
+│   ├── recommendation_engine.py    # Composite hospital scoring
+│   ├── outcome_tracker.py          # Patient outcome tracking
+│   ├── ai_service.py               # AI-powered insights
+│   ├── sql_connector.py            # SQL Warehouse connector
+│   ├── lakebase.py                 # Lakebase/SQLite persistence
 │   └── routes/
-│       ├── facilities.py       # List, detail, map, autocomplete
-│       ├── trust.py            # Score & batch score
-│       ├── search.py           # Vectorized relevance search
-│       ├── stats.py            # Dataset, state, trust distribution stats
-│       ├── persistence.py      # Notes, overrides, shortlists CRUD
-│       ├── triage.py           # Symptom assessment + hospital recommend
-│       ├── booking.py          # Appointment CRUD + slot availability
-│       ├── outcomes.py         # Outcome recording + trust impact
-│       ├── ngo.py              # NGO dashboard, gap analysis, interventions
-│       └── ai.py              # AI chat, triage, explain, analyze
-├──
-├── data/                       # Parquet datasets
-│   ├── facilities_master.parquet     # 9,947 clean facilities
-│   ├── facilities_scored.parquet     # Scored facilities
-│   ├── facilities.parquet            # Raw facilities
-│   ├── district_health.parquet       # 707 NFHS-5 districts
-│   └── nfhs5_district_health.xlsx    # Source NFHS-5 data
-├──
-└── scripts/                    # Data pipeline scripts
-    ├── build_master_dataset.py
-    ├── normalize_cities_v2.py
-    ├── normalize_names.py
-    ├── convert_csv_to_scored_parquet.py
-    ├── analyze_names.py
-    ├── analyze_cities.py
-    ├── check_all_data.py
-    ├── test_api.py
-    ├── test_api_full.py
-    ├── test_frontend.py
-    └── test_pipeline.py
+│       ├── facilities.py           # /api/facilities
+│       ├── trust.py                # /api/trust
+│       ├── search.py               # /api/search
+│       ├── stats.py                # /api/stats
+│       ├── persistence.py          # /api/persistence
+│       ├── triage.py               # /api/triage
+│       ├── booking.py              # /api/booking
+│       ├── ngo.py                  # /api/ngo
+│       ├── outcomes.py             # /api/outcomes
+│       ├── ai.py                   # /api/ai
+│       └── __init__.py
+│
+└── data/                           # Parquet datasets
+    ├── facilities_master.parquet   # 9,947 facilities
+    ├── facilities_scored.parquet   # Scored facilities
+    ├── facilities.parquet          # Raw facilities
+    └── district_health.parquet     # NFHS-5 district metrics
 ```
 
-## 🌐 API Endpoints
+---
 
-### Facilities
+## 📚 API Reference
+
+### Core Endpoints
+
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/facilities` | List facilities (paginated, filterable by state/trust/capability) |
-| GET | `/api/facilities/{id}` | Facility detail with all fields |
-| GET | `/api/facilities/map` | Map data (with coordinates, trust scores) |
-| GET | `/api/facilities/autocomplete?q=` | Autocomplete facility names |
+| `GET` | `/api/health` | System health & data source info |
+| `GET` | `/api/facilities` | Search, filter, paginate facilities |
+| `GET` | `/api/facilities/{id}` | Facility detail by unique ID |
+| `GET` | `/api/facilities/map` | Map-ready geo data |
+| `GET` | `/api/facilities/autocomplete` | Name autocomplete suggestions |
+| `GET` | `/api/search?q=` | Full-text facility search |
 
 ### Trust Scoring
+
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/trust/score/{id}` | Score a single facility |
-| POST | `/api/trust/batch` | Batch score up to 50 facilities |
+| `POST` | `/api/trust/score/{id}` | Compute trust score for a facility |
+| `POST` | `/api/trust/batch` | Batch score multiple facilities |
 
-### Search
+### Analytics
+
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/search?q=` | Vectorized relevance search across names, descriptions, cities, capabilities |
+| `GET` | `/api/stats` | Dataset summary metrics |
+| `GET` | `/api/stats/states` | State-level coverage stats |
+| `GET` | `/api/stats/trust-distribution` | Trust signal breakdown |
+| `GET` | `/api/stats/column-completeness` | Column fill rates |
+| `GET` | `/api/stats/district-health` | NFHS-5 district metrics |
 
-### Statistics
+### Persistence (User Data)
+
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/stats` | Dataset-level summary statistics |
-| GET | `/api/stats/states` | State-level coverage & trust averages |
-| GET | `/api/stats/trust-distribution` | Trust signal distribution counts |
-| GET | `/api/stats/column-completeness` | Field completeness counts |
-| GET | `/api/stats/district-health` | NFHS-5 district health indicators (707 districts) |
+| `GET` | `/api/persistence/notes/{id}` | Get analyst notes |
+| `POST` | `/api/persistence/notes` | Save a note |
+| `GET` | `/api/persistence/shortlist` | Get facility shortlist |
+| `POST` | `/api/persistence/shortlist` | Add to shortlist |
+| `DELETE` | `/api/persistence/shortlist` | Remove from shortlist |
 
-### Persistence (Notes & Shortlists)
+### Clinical Workflows
+
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/persistence/notes/{id}` | Get notes for a facility |
-| POST | `/api/persistence/notes` | Add a note |
-| GET | `/api/persistence/overrides/{id}` | Get trust score override |
-| POST | `/api/persistence/overrides` | Set trust score override |
-| GET | `/api/persistence/shortlist` | Get shortlisted facility IDs |
-| POST | `/api/persistence/shortlist` | Add facility to shortlist |
-| DELETE | `/api/persistence/shortlist` | Remove facility from shortlist |
+| `POST` | `/api/triage/assess` | Symptom triage assessment |
+| `POST` | `/api/triage/recommend` | Hospital recommendations |
+| `POST` | `/api/booking/create` | Create appointment |
+| `GET` | `/api/booking/slots` | Available time slots |
+| `GET` | `/api/ngo/stats` | NGO resource metrics |
 
-### Triage & Recommendation
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/triage/assess` | Assess symptoms → specialties, urgency, red flags |
-| POST | `/api/triage/recommend` | Recommend hospitals by specialty & location |
-| GET | `/api/triage/specialties` | List supported medical specialties |
-| GET | `/api/triage/urgency-levels` | List urgency levels & criteria |
+---
 
-### Booking
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/booking/appointments` | Create appointment |
-| GET | `/api/booking/appointments/{id}` | Get appointment details |
-| GET | `/api/booking/appointments/facility/{id}` | Facility appointments |
-| GET | `/api/booking/appointments/patient/{phone}` | Patient appointments |
-| PUT | `/api/booking/appointments/{id}/status` | Update appointment status |
-| POST | `/api/booking/appointments/{id}/cancel` | Cancel appointment |
-| POST | `/api/booking/appointments/{id}/confirm` | Confirm appointment |
-| GET | `/api/booking/slots` | Get available time slots |
-| GET | `/api/booking/stats` | Booking statistics |
+## ☁️ Deployment
 
-### Outcomes
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/outcomes/record` | Record patient outcome |
-| GET | `/api/outcomes/facility/{id}` | Facility outcomes |
-| GET | `/api/outcomes/facility/{id}/summary` | Facility outcome summary |
-| GET | `/api/outcomes/facility/{id}/trust-impact` | Trust score impact from outcomes |
-| GET | `/api/outcomes/patient/{id}` | Patient outcomes |
-| GET | `/api/outcomes/insights` | Cross-facility learning insights |
-| GET | `/api/outcomes/stats` | Overall outcome statistics |
+### Databricks Apps
 
-### NGO Dashboard
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/ngo/dashboard` | NGO dashboard overview & key metrics |
-| POST | `/api/ngo/gap-analysis` | Regional gap analysis |
-| GET | `/api/ngo/resource-gaps` | Resource gap analysis by capability |
-| GET | `/api/ngo/intervention-plan` | Prioritized intervention recommendations |
+```bash
+# Deploy to Databricks
+databricks apps deploy data-legend
 
-### AI (Databricks LLM)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/ai/chat` | Chat completion (Llama 3.3 70B / Mixtral) |
-| POST | `/api/ai/triage` | AI-powered triage (falls back to rule-based) |
-| POST | `/api/ai/explain` | Explain hospital recommendation |
-| POST | `/api/ai/analyze-facility` | AI facility quality analysis |
-| POST | `/api/ai/health-insights` | Regional health insights generation |
-| GET | `/api/ai/models` | List available AI models |
-
-### System
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check with data source info |
-| GET | `/docs` | Interactive Swagger API documentation |
-
-## 🏗️ Deployment Architecture
-
-The project supports a **split deployment** for production:
-
-```
-User Browser
-    │
-    ▼
-┌─────────────┐     ┌──────────────────┐
-│   Vercel    │────▶│    Render API    │
-│  (Frontend) │     │  (FastAPI)       │
-│  client/    │     │  app:app         │
-└─────────────┘     └────────┬─────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │  Data Sources    │
-                    │  ┌─────────────┐ │
-                    │  │ Parquet     │ │
-                    │  ├─────────────┤ │
-                    │  │ SQL WH      │ │
-                    │  ├─────────────┤ │
-                    │  │ Lakebase    │ │
-                    │  └─────────────┘ │
-                    └──────────────────┘
+# Or validate first
+databricks apps validate data-legend
 ```
 
-### Deploy to Render (API)
+The `app.yaml` configuration handles:
+- **Build**: Installs Python deps, runs `npm install && npm build`
+- **Run**: Starts uvicorn on the Databricks-assigned port
+- **Resources**: 4 CPU, 16GB memory
+- **Environment**: Auto-injects SQL Warehouse, Lakebase credentials
 
-1. Create a new **Render Web Service** from this repository.
-2. Set root directory to repository root.
-3. Build command: `pip install -r requirements.txt`
-4. Start command: `uvicorn app:app --host 0.0.0.0 --port $PORT`
-5. Add env vars:
-   - `PYTHONPATH=.`
-   - `CORS_ORIGINS=https://<your-vercel-app>.vercel.app`
-   - (Optional) `LAKEBASE_ENDPOINT` for Postgres persistence
-   - (Optional) `DATABRICKS_WAREHOUSE_ID` for SQL Warehouse
+### Docker
 
-### Deploy to Vercel (Frontend)
-
-1. Import repository into Vercel.
-2. Set root directory to `client`.
-3. Build command: `npm run build`
-4. Output directory: `dist`
-5. Add env var: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
-
-### Databricks Apps (Alternative)
-
-The existing `app.yaml` retains full Databricks Apps support:
-- Auto-injects `PGHOST`, `PGUSER`, `PGDATABASE` from Lakebase
-- Auto-injects `DATABRICKS_WAREHOUSE_ID` from SQL Warehouse
-- Generates OAuth tokens via `databricks.sdk`
-
-## 🧠 Trust Engine Details
-
-The trust engine analyzes **16 capability categories** across **5 evidence fields**:
-
-### Capabilities Analyzed
-
-ICU, NICU, Maternity, Emergency, Oncology, Trauma, Dialysis, Surgery,
-Pharmacy, Laboratory, Radiology, Cardiology, Ophthalmology,
-Orthopedics, Pediatrics, Dental
-
-### Scoring Logic
-
-```python
-CORROBORATED  = evidence in ≥2 fields  → score 0.7–1.0 (green)
-CLAIMED_ONLY  = evidence in 1 field     → score 0.5      (amber)
-WEAK          = negated/aspirational     → score 0.1–0.3  (red)
-UNKNOWN       = no evidence found        → score 0.0      (gray)
+```bash
+docker build -t data-legend .
+docker run -p 8080:8080 data-legend
 ```
 
-Evidence fields are weighted:
-- **Description**: 1.0× (richest source)
-- **Capability**: 0.8×
-- **Procedure**: 0.8×
-- **Equipment**: 0.7×
-- **Specialties**: 0.6×
-
-### Hindi/Hinglish Triage Support
-
-The triage engine maps 80+ Hindi medical phrases to English equivalents:
-- `"seene me dard"` → chest pain
-- `"saans phulna"` → shortness of breath
-- `"kamar dard"` → back pain
-- `"bukhar"` → fever
-- `"behos"` → unconscious
-
-## 📈 Recommendation Scoring
-
-Hospitals are ranked by **composite scoring** with weighted factors:
-
-| Factor | Weight | Description |
-|--------|--------|-------------|
-| Trust Score | 35% | Claim-level verification confidence |
-| Capability Match | 25% | How well the facility matches required specialties |
-| Urgency Bonus | 15% | Emergency/ICU availability for urgent cases |
-| Proximity | 10% | Distance from patient (closer = better) |
-| Capacity | 10% | Bed count & doctor availability |
-| District Health | 5% | NFHS-5 health indicators bonus |
-
-## 🤝 Contributing
-
-We welcome contributions! Areas we'd love help with:
-
-- **Additional data sources**: Integrate more Indian healthcare datasets
-- **Language expansion**: More Indian language support for triage
-- **Mobile app**: React Native or Flutter client
-- **Real-time availability**: API integration with actual hospital bed management systems
-- **Telemedicine**: Video consultation scheduling and integration
+---
 
 ## 📄 License
 
-Built for the **Databricks Apps & Agents for Good 2026** hackathon.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for better healthcare access in India</sub>
+  <br />
+  <p style="font-size: 0.875rem; color: #64748b;">
+    Built with ❤️ for the 
+    <a href="https://www.databricks.com/" style="color: #0f766e; font-weight: 600;">Databricks</a> 
+    Apps & Agents for Good 2026 Hackathon
+  </p>
+  <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
+    © 2026 Data Legend. All rights reserved.
+  </p>
+  <br />
 </div>

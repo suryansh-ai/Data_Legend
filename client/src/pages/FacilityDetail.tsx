@@ -25,6 +25,7 @@ export default function FacilityDetail() {
   const [newNote, setNewNote] = useState('')
   const [inShortlist, setInShortlist] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingTrust, setLoadingTrust] = useState(true)
   const [error, setError] = useState('')
 
   // Override State
@@ -36,30 +37,49 @@ export default function FacilityDetail() {
   const loadData = async () => {
     if (!id) return
     setLoading(true)
+    setLoadingTrust(true)
+
+    const facilityPromise = api.getFacility(id)
+    const trustPromise = api.scoreFacility(id)
+    const notesPromise = api.getNotes(id).catch(() => [])
+    const shortlistPromise = api.getShortlist().catch(() => [])
+    const overridePromise = api.getOverride(id).catch(() => null)
+
+    let facilityData: Facility | null = null
+
     try {
-      const [f, t, n, sl, ov] = await Promise.all([
-        api.getFacility(id),
-        api.scoreFacility(id),
-        api.getNotes(id).catch(() => []),
-        api.getShortlist().catch(() => []),
-        api.getOverride(id).catch(() => null),
-      ])
+      const f = await facilityPromise
+      facilityData = f
       setFacility(f)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+
+    try {
+      const t = await trustPromise
       setTrust(t)
+    } catch (e) {
+      console.warn('Failed to load trust details:', e)
+    } finally {
+      setLoadingTrust(false)
+    }
+
+    try {
+      const [n, sl, ov] = await Promise.all([notesPromise, shortlistPromise, overridePromise])
       setNotes(n)
       setInShortlist(sl.includes(id))
       if (ov && 'new_score' in ov) {
         setActiveOverride(ov)
         setOverrideScore(ov.new_score)
         setOverrideReason(ov.reason)
-      } else {
+      } else if (facilityData) {
         setActiveOverride(null)
-        setOverrideScore(f._trust_score || 50)
+        setOverrideScore(facilityData._trust_score || 50)
       }
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
+    } catch (e) {
+      console.warn('Failed to load secondary facility data:', e)
     }
   }
 
@@ -197,12 +217,12 @@ export default function FacilityDetail() {
                 Verified Health Provider
               </span>
               {facility._facility_type && (
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border capitalize">
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border">
                   {facility._facility_type}
                 </span>
               )}
               {facility._operator_type && (
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border capitalize">
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border">
                   {facility._operator_type}
                 </span>
               )}

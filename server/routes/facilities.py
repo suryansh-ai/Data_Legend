@@ -5,7 +5,7 @@ Facilities API — List, detail, map data endpoints.
 import math
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
-from server.data_loader import get_facilities_df, get_facility_by_id, _STATE_COL, _CITY_COL
+from server.data_loader import get_facilities_df, get_facility_by_id, _lowered_series, _STATE_COL, _CITY_COL
 
 router = APIRouter(tags=["facilities"])
 
@@ -28,11 +28,12 @@ def autocomplete_facilities(q: str = Query("", min_length=1)):
     sc = _sc()
     
     # Filter by prefix first (starts with)
-    starts_mask = df["name"].str.lower().str.startswith(q_lower, na=False)
+    names = _lowered_series("name")
+    starts_mask = names.str.startswith(q_lower, na=False)
     starts_with = df[starts_mask]
     
     # Filter by containment (contains) excluding starts_with
-    contains_mask = df["name"].str.lower().str.contains(q_lower, na=False) & ~starts_mask
+    contains_mask = names.str.contains(q_lower, na=False) & ~starts_mask
     contains = df[contains_mask]
     
     # Concatenate starts_with first, then contains
@@ -66,22 +67,24 @@ def list_facilities(
         return {"items": [], "total": 0, "page": 1, "limit": limit, "pages": 0}
 
     sc, cc = _sc(), _cc()
-    filtered = df.copy()
+    filtered = df
 
     if q:
         q_lower = q.lower()
+        names = _lowered_series("name")
+        descs = _lowered_series("description")
         mask = (
-            filtered["name"].str.lower().str.contains(q_lower, na=False) |
-            filtered["description"].str.lower().str.contains(q_lower, na=False)
+            names.str.contains(q_lower, regex=False) |
+            descs.str.contains(q_lower, regex=False)
         )
         if cc in filtered.columns:
-            mask = mask | filtered[cc].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series(cc).str.contains(q_lower, regex=False)
         if sc in filtered.columns:
-            mask = mask | filtered[sc].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series(sc).str.contains(q_lower, regex=False)
         if "capability" in filtered.columns:
-            mask = mask | filtered["capability"].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series("capability").str.contains(q_lower, regex=False)
         if "specialties" in filtered.columns:
-            mask = mask | filtered["specialties"].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series("specialties").str.contains(q_lower, regex=False)
         filtered = filtered[mask]
 
     if state and sc in filtered.columns:

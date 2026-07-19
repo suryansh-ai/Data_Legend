@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Filter, MapPin, Grid, Users, Bed, Check, X, Sparkles, ChevronRight, HelpCircle, Star } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useDebounce } from '@/lib/useDebounce'
 import TrustBadge from '@/components/TrustBadge'
 import MapView from '@/components/MapView'
 import ExportButton from '@/components/ExportButton'
@@ -31,21 +32,23 @@ export default function TrustDesk() {
 
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
+  const debouncedQuery = useDebounce(query, 250)
 
-  const handleQueryChange = async (val: string) => {
-    setQuery(val)
-    if (val.trim().length >= 2) {
-      try {
-        const res = await api.autocomplete(val)
-        setSuggestions(res)
-        setShowDropdown(true)
-      } catch (err) {
-        console.error(err)
-      }
+  // Debounced autocomplete - only fires API call 250ms after user stops typing
+  useEffect(() => {
+    if (debouncedQuery.trim().length >= 2) {
+      api.autocomplete(debouncedQuery)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]))
+      setShowDropdown(true)
     } else {
       setSuggestions([])
       setShowDropdown(false)
     }
+  }, [debouncedQuery])
+
+  const handleQueryChange = (val: string) => {
+    setQuery(val)
   }
 
   const fetchFacilities = useCallback(async () => {
@@ -77,10 +80,81 @@ export default function TrustDesk() {
   useEffect(() => { fetchFacilities() }, [fetchFacilities])
 
   useEffect(() => {
+    if (viewMode !== 'map') return
     api.getMapData({ state: state || undefined, trust_signal: trustSignal || undefined })
       .then(setAllFacilities)
       .catch(() => setAllFacilities([]))
-  }, [state, trustSignal])
+  }, [viewMode, state, trustSignal])
+
+  const loadShortlistDetails = useCallback(async () => {
+    setLoadingShortlist(true)
+    try {
+      const ids = await api.getShortlist()
+      if (ids.length > 0) {
+        const details = await Promise.all(
+          ids.map(async (id) => {
+            try {
+              return await api.getFacility(id)
+            } catch {
+              return null;
+            }
+          })
+        )
+        const validDetails = details.filter((d): d is Facility => d !== null)
+        setShortlistedFacilities(validDetails)
+
+        const notesMap: Record<string, string> = {}
+        await Promise.all(
+          validDetails.map(async (f) => {
+            try {
+              const notesList = await api.getNotes(f.unique_id)
+              if (notesList.length > 0) {
+                notesMap[f.unique_id] = notesList[0].note
+              }
+            } catch {}
+          })
+        )
+        setShortlistNotes(notesMap)
+      } else {
+        setShortlistedFacilities([])
+      }
+    } catch (err) {
+      console.error('Failed to load shortlist:', err)
+    } finally {
+      setLoadingShortlist(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (viewMode === 'shortlist') {
+      loadShortlistDetails()
+    }
+  }, [viewMode, loadShortlistDetails])
+
+  const handleExportShortlist = () => {
+    const headers = ['Unique ID', 'Hospital Name', 'City', 'State', 'Trust Score', 'Trust Level', 'Verified Doctors', 'Patient Beds', 'Logged Verification Notes'];
+    const rows = shortlistedFacilities.map(f => [
+      f.unique_id,
+      f.name,
+      f.address_city || '',
+      f.address_stateOrRegion || '',
+      (f._trust_score ?? 0).toFixed(0),
+      f._trust_signal || 'UNKNOWN',
+      f.numberDoctors ?? 0,
+      f.capacity ?? 0,
+      shortlistNotes[f.unique_id] || 'No notes'
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+    
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", "audited_coordinator_shortlist.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const loadShortlistDetails = useCallback(async () => {
     setLoadingShortlist(true)

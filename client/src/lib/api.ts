@@ -19,7 +19,37 @@ function normalizeApiBase(value?: string) {
 const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE_URL)
 const BASE = API_BASE ? `${API_BASE}/api` : '/api'
 
+// Simple in-memory cache with TTL to avoid re-fetching data on navigation
+const _cache = new Map<string, { data: any; expiry: number }>()
+const CACHE_TTL = 30000 // 30 seconds for fast navigation
+
+function getCached<T>(key: string): T | null {
+  const entry = _cache.get(key)
+  if (entry && Date.now() < entry.expiry) return entry.data as T
+  _cache.delete(key)
+  return null
+}
+
+function setCache(key: string, data: any): void {
+  _cache.set(key, { data, expiry: Date.now() + CACHE_TTL })
+  // Trim cache if it grows too large
+  if (_cache.size > 50) {
+    const oldest = _cache.keys().next().value
+    if (oldest) _cache.delete(oldest)
+  }
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // Only cache GET requests (read-only data)
+  const method = options?.method || 'GET'
+  const cacheKey = method === 'GET' ? path : null
+  
+  // Check cache first
+  if (cacheKey) {
+    const cached = getCached<T>(cacheKey)
+    if (cached) return cached
+  }
+  
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
@@ -28,7 +58,36 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const error = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(error.detail || `HTTP ${res.status}`)
   }
-  return res.json()
+  const data = await res.json()
+  
+  // Store in cache for GET requests
+  if (cacheKey) {
+    setCache(cacheKey, data)
+  }
+  
+  return data
+}
+
+let autocompleteCache: any[] | null = null
+let useBackendAutocomplete = true
+let isFetchingCache = false
+
+async function prefetchAutocompleteCache() {
+  if (isFetchingCache || autocompleteCache) return
+  isFetchingCache = true
+  try {
+    const all = await request<any[]>('/facilities/map')
+    autocompleteCache = all.map(f => ({
+      unique_id: f.unique_id,
+      name: f.name || '',
+      city: f.city || '',
+      state: f.state || '',
+    }))
+  } catch (err) {
+    console.error('Failed to prefetch autocomplete cache:', err)
+  } finally {
+    isFetchingCache = false
+  }
 }
 
 let autocompleteCache: any[] | null = null
