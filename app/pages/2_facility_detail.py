@@ -3,7 +3,8 @@ Facility Detail — Full evidence breakdown.
 """
 import streamlit as st
 import json, sys, os
-_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_PAGES_DIR = os.path.dirname(os.path.abspath(__file__))
+_APP_DIR = os.path.dirname(_PAGES_DIR)
 _PROJECT_ROOT = os.path.dirname(_APP_DIR)
 sys.path.insert(0, _APP_DIR)
 sys.path.insert(0, _PROJECT_ROOT)
