@@ -23,9 +23,13 @@ _ON_DATABRICKS = bool(os.getenv("DATABRICKS_WAREHOUSE_ID"))
 _STATE_COL = None
 _CITY_COL = None
 
+# Lazy data directory - only search filesystem on first access
+_DATA_DIR = None
 
-def _find_data_dir() -> str:
-    """Find the data directory regardless of where the app is run from."""
+def _get_data_dir() -> str:
+    global _DATA_DIR
+    if _DATA_DIR is not None:
+        return _DATA_DIR
     candidates = [
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"),
         os.path.join(os.getcwd(), "data"),
@@ -34,15 +38,14 @@ def _find_data_dir() -> str:
     ]
     for path in candidates:
         if os.path.isdir(path):
-            return path
-    return os.path.join(os.getcwd(), "data")
-
-
-_DATA_DIR = _find_data_dir()
+            _DATA_DIR = path
+            return _DATA_DIR
+    _DATA_DIR = os.path.join(os.getcwd(), "data")
+    return _DATA_DIR
 
 
 def _data_path(filename: str) -> str:
-    return os.path.join(_DATA_DIR, filename)
+    return os.path.join(_get_data_dir(), filename)
 
 
 def _ensure_trust_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -90,11 +93,28 @@ def _load_from_parquet() -> Optional[pd.DataFrame]:
     global _STATE_COL, _CITY_COL
 
     # Priority order: master > scored > generic
+    # Essential columns for faster startup - only load what's available
+    _ESSENTIAL_COLS = [
+        "unique_id", "name", "description", "capability", "procedure",
+        "equipment", "specialties", "numberDoctors", "capacity",
+        "address_stateOrRegion", "address_city", "latitude", "longitude",
+        "_trust_score", "_trust_signal", "_total_claims", "_corroborated",
+        "city", "state", "state_type", "country",
+        "officialPhone", "phone_numbers", "email",
+        "officialWebsite", "websites",
+        "yearEstablished", "acceptsVolunteers",
+        "_facility_type", "_operator_type",
+        "address_line1", "address_line2", "pincode",
+    ]
     for fname in ["facilities_master.parquet", "facilities_scored.parquet", "facilities.parquet"]:
         fpath = _data_path(fname)
         if os.path.exists(fpath):
             try:
-                df = pd.read_parquet(fpath)
+                # Read schema first (metadata only, no data) to get available columns
+                import pyarrow.parquet as pq
+                available_cols = pq.read_schema(fpath).names
+                cols_to_read = [c for c in _ESSENTIAL_COLS if c in available_cols]
+                df = pd.read_parquet(fpath, columns=cols_to_read or None)
                 if len(df) > 0:
                     # Detect column names
                     if "state" in df.columns:
