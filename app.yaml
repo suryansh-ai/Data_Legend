@@ -16,5 +16,5 @@ run:
     DATABRICKS_WAREHOUSE_ID:
       valueFrom: sql-warehouse
   resources:
-    memory: 6G
-    cpus: 2
+    memory: 16G
+    cpus: 4

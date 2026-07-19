@@ -13,8 +13,10 @@ import {
   Calendar,
   Building2,
 } from 'lucide-react'
+import { useEffect } from 'react'
 import { ThemeToggle } from './ThemeToggle'
 import { cn } from '@/lib/utils'
+import { useDebounce } from '@/lib/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { EmergencyBox } from './EmergencyBox'
@@ -34,22 +36,23 @@ function GlobalSearch() {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const navigate = useNavigate()
+  const debouncedQ = useDebounce(q, 250)
 
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setQ(val)
-    if (val.trim().length >= 2) {
-      try {
-        const res = await api.autocomplete(val)
-        setSuggestions(res)
-        setShowDropdown(true)
-      } catch (err) {
-        console.error(err)
-      }
+  // Debounced autocomplete - only fires API call 250ms after user stops typing
+  useEffect(() => {
+    if (debouncedQ.trim().length >= 2) {
+      api.autocomplete(debouncedQ)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]))
+      setShowDropdown(true)
     } else {
       setSuggestions([])
       setShowDropdown(false)
     }
+  }, [debouncedQ])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQ(e.target.value)
   }
 
   const handleSubmit = (e: React.FormEvent) => {

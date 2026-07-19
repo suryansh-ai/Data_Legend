@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Filter, MapPin, Grid, Users, Bed, Check, X, Sparkles, ChevronRight, HelpCircle, Star } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useDebounce } from '@/lib/useDebounce'
 import TrustBadge from '@/components/TrustBadge'
 import MapView from '@/components/MapView'
 import ExportButton from '@/components/ExportButton'
@@ -31,21 +32,23 @@ export default function TrustDesk() {
 
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
+  const debouncedQuery = useDebounce(query, 250)
 
-  const handleQueryChange = async (val: string) => {
-    setQuery(val)
-    if (val.trim().length >= 2) {
-      try {
-        const res = await api.autocomplete(val)
-        setSuggestions(res)
-        setShowDropdown(true)
-      } catch (err) {
-        console.error(err)
-      }
+  // Debounced autocomplete - only fires API call 250ms after user stops typing
+  useEffect(() => {
+    if (debouncedQuery.trim().length >= 2) {
+      api.autocomplete(debouncedQuery)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]))
+      setShowDropdown(true)
     } else {
       setSuggestions([])
       setShowDropdown(false)
     }
+  }, [debouncedQuery])
+
+  const handleQueryChange = (val: string) => {
+    setQuery(val)
   }
 
   const fetchFacilities = useCallback(async () => {
