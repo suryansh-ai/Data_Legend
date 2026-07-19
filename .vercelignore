@@ -1,0 +1,13 @@
+node_modules
+client/node_modules
+.git
+.github
+.env
+.env.*
+*.pyc
+__pycache__
+.vercel
+mlruns
+mlflow.db
+data/*.csv
+scripts
