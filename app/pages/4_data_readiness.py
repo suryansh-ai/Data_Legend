@@ -3,7 +3,10 @@ Data Readiness — Data quality dashboard.
 """
 import streamlit as st
 import json, sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_APP_DIR)
+sys.path.insert(0, _APP_DIR)
+sys.path.insert(0, _PROJECT_ROOT)
 from components.css import inject_css, nav
 from utils.data_loader import load_facilities
 import plotly.graph_objects as go

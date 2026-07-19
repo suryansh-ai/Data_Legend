@@ -4,7 +4,10 @@ Medical Desert — Map healthcare gaps across India.
 import streamlit as st
 import pandas as pd
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_APP_DIR)
+sys.path.insert(0, _APP_DIR)
+sys.path.insert(0, _PROJECT_ROOT)
 from components.css import inject_css, nav
 from utils.data_loader import load_facilities, get_dataset_stats
 

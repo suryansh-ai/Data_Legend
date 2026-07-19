@@ -2,21 +2,30 @@
 Data Loader — Ultra-fast parquet-based data loading.
 """
 
+import os
 import pandas as pd
 import streamlit as st
 from typing import Optional
+
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+
+def _data_path(filename: str) -> str:
+    return os.path.join(_PROJECT_ROOT, "data", filename)
 
 
 @st.cache_data(show_spinner=False)
 def load_facilities() -> pd.DataFrame:
     """Load facilities from parquet — instant."""
-    try:
-        return pd.read_parquet("data/facilities_scored.parquet")
-    except Exception:
+    for fname in ["facilities_scored.parquet", "facilities.parquet"]:
         try:
-            return pd.read_parquet("data/facilities.parquet")
+            return pd.read_parquet(_data_path(fname))
         except Exception:
-            return pd.read_csv("data/facilities.csv", on_bad_lines="skip", engine="python")
+            pass
+    try:
+        return pd.read_csv(_data_path("facilities.csv"), on_bad_lines="skip", engine="python")
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(show_spinner=False)
