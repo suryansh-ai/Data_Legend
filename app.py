@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from server.routes import facilities, trust, search, persistence, stats
+from server.routes import facilities, trust, search, persistence, stats, triage, booking, outcomes, ngo, ai
 
 
 @asynccontextmanager
@@ -66,6 +66,11 @@ app.include_router(trust.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(persistence.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
+app.include_router(triage.router, prefix="/api")
+app.include_router(booking.router, prefix="/api")
+app.include_router(outcomes.router, prefix="/api")
+app.include_router(ngo.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
 
 
 @app.get("/api/health")

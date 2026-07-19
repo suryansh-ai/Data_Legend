@@ -10,6 +10,9 @@ import {
   Menu,
   X,
   Search,
+  Stethoscope,
+  Calendar,
+  Building2,
 } from 'lucide-react'
 import { ThemeToggle } from './ThemeToggle'
 import { cn } from '@/lib/utils'
@@ -19,6 +22,9 @@ import { useNavigate } from 'react-router-dom'
 const navItems = [
   { to: '/', icon: Home, label: 'Overview' },
   { to: '/trust-desk', icon: ShieldCheck, label: 'Trust Desk' },
+  { to: '/triage', icon: Stethoscope, label: 'Medical Triage' },
+  { to: '/booking', icon: Calendar, label: 'Book Appointment' },
+  { to: '/ngo-dashboard', icon: Building2, label: 'NGO Dashboard' },
   { to: '/medical-desert', icon: MapPin, label: 'Medical Desert' },
   { to: '/data-readiness', icon: Database, label: 'Data Readiness' },
 ]
