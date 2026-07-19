@@ -8,10 +8,10 @@ import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from server.routes import facilities, trust, search, persistence, stats
 
@@ -23,19 +23,14 @@ async def lifespan(app: FastAPI):
     from server.sql_connector import init_warehouse
     from server.lakebase import db
 
-    # Layer 1: Load parquet (fastest)
     load_facilities()
-
-    # Layer 2: Connect to SQL Warehouse (analytics)
     wh_ok = init_warehouse()
     print(f"[startup] SQL Warehouse: {'connected' if wh_ok else 'unavailable (using parquet)'}")
-
-    # Layer 3: Connect to Lakebase (persistence)
     print(f"[startup] Persistence: {db.get_backend()}")
+    print(f"[startup] Facilities loaded: {len(load_facilities())} records")
 
     yield
 
-    # Shutdown: close connections
     try:
         from server.sql_connector import _connection
         if _connection:
@@ -51,7 +46,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Data Legend",
-    description="Healthcare Facility Intelligence Platform — 3-layer data architecture",
+    description="Healthcare Facility Intelligence Platform",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -64,6 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- API Routes (registered FIRST, before catch-all) ---
 app.include_router(facilities.router, prefix="/api")
 app.include_router(trust.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
@@ -73,22 +69,30 @@ app.include_router(stats.router, prefix="/api")
 
 @app.get("/api/health")
 def health_check():
-    """Health check with data source status."""
     from server.data_loader import get_data_source_info
     return get_data_source_info()
 
 
-# Serve React build
+# --- Serve React build ---
 DIST_DIR = Path(__file__).parent / "client" / "dist"
 
 if DIST_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="assets")
+    # Mount static assets (CSS, JS, images)
+    app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="static-assets")
 
+    # Catch-all: serve React for non-API, non-asset routes
     @app.get("/{full_path:path}")
     async def serve_react(full_path: str):
+        # Skip API routes (shouldn't reach here, but safety check)
+        if full_path.startswith("api/"):
+            return JSONResponse({"error": "Not found"}, status_code=404)
+
+        # Try to serve the file from dist
         file_path = DIST_DIR / full_path
         if file_path.is_file():
             return FileResponse(str(file_path))
+
+        # Default: serve React index.html (SPA routing)
         return FileResponse(str(DIST_DIR / "index.html"))
 else:
     @app.get("/")
@@ -96,7 +100,7 @@ else:
         return {
             "message": "Data Legend API",
             "docs": "/docs",
-            "note": "React build not found. Run 'npm run build' in client/ directory.",
+            "note": "React build not found. Run 'npm run build' in client/.",
         }
 
 

@@ -8,15 +8,36 @@ Priority:
 """
 
 import os
+import glob as globmod
 import pandas as pd
 from typing import Optional
 
-_PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 _df: Optional[pd.DataFrame] = None
 
 
+def _find_data_dir() -> str:
+    """Find the data directory regardless of where the app is run from."""
+    candidates = [
+        # Relative to this file: server/../data
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"),
+        # Relative to CWD
+        os.path.join(os.getcwd(), "data"),
+        # Absolute paths for Databricks
+        "/tmp/databricks/apps/data",
+        os.path.join(os.getenv("HOME", ""), "data"),
+    ]
+    for path in candidates:
+        if os.path.isdir(path):
+            return path
+    # Last resort: CWD
+    return os.path.join(os.getcwd(), "data")
+
+
+_DATA_DIR = _find_data_dir()
+
+
 def _data_path(filename: str) -> str:
-    return os.path.join(_PROJECT_ROOT, "data", filename)
+    return os.path.join(_DATA_DIR, filename)
 
 
 def load_facilities() -> pd.DataFrame:
@@ -26,11 +47,29 @@ def load_facilities() -> pd.DataFrame:
         return _df
 
     for fname in ["facilities_scored.parquet", "facilities.parquet"]:
-        try:
-            _df = pd.read_parquet(_data_path(fname))
-            return _df
-        except Exception:
-            pass
+        fpath = _data_path(fname)
+        if os.path.exists(fpath):
+            try:
+                _df = pd.read_parquet(fpath)
+                print(f"[data] Loaded {len(_df)} facilities from {fpath}")
+                return _df
+            except Exception as e:
+                print(f"[data] Error loading {fpath}: {e}")
+
+    # Fallback: search for any parquet file in the repo
+    try:
+        repo_root = os.path.dirname(_DATA_DIR)
+        parquet_files = globmod.glob(os.path.join(repo_root, "**", "*.parquet"), recursive=True)
+        for fpath in parquet_files:
+            try:
+                _df = pd.read_parquet(fpath)
+                if len(_df) > 100:
+                    print(f"[data] Loaded {len(_df)} facilities from fallback: {fpath}")
+                    return _df
+            except Exception:
+                continue
+    except Exception:
+        pass
 
     # Fallback: try SQL Warehouse
     try:
@@ -39,10 +78,12 @@ def load_facilities() -> pd.DataFrame:
             df = warehouse_query_df("SELECT * FROM facilities")
             if df is not None and not df.empty:
                 _df = df
+                print(f"[data] Loaded {len(_df)} facilities from SQL Warehouse")
                 return _df
     except Exception:
         pass
 
+    print("[data] WARNING: No data loaded from any source!")
     _df = pd.DataFrame()
     return _df
 
@@ -130,10 +171,7 @@ def get_data_source_info() -> dict:
     df = get_facilities_df()
     source = "none"
     if not df.empty:
-        if _df is not None and os.path.exists(_data_path("facilities_scored.parquet")):
-            source = "parquet"
-        else:
-            source = "sql_warehouse"
+        source = "loaded"
     try:
         from server.sql_connector import is_available as wh_available
         warehouse = wh_available()
@@ -147,6 +185,7 @@ def get_data_source_info() -> dict:
     return {
         "data_source": source,
         "facility_count": len(df) if not df.empty else 0,
+        "data_dir": _DATA_DIR,
         "warehouse_available": warehouse,
         "persistence_backend": persistence,
     }
