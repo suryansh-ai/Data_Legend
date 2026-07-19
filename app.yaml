@@ -1,0 +1,16 @@
+name: data-legend
+description: Building the Trust Layer for Indian Healthcare
+
+command: streamlit run app/main.py --server.port 8501
+
+env:
+  - name: STREAMLIT_SERVER_HEADLESS
+    value: "true"
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"
+  - name: MLFLOW_TRACKING_URI
+    value: "databricks"
+
+permissions:
+  - level: "CAN_VIEW"
+    principal: "users"
