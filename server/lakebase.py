@@ -157,11 +157,15 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute("INSERT INTO notes (facility_id, note) VALUES (%s, %s)", (facility_id, note))
+                if self.backend == "sqlite":
+                    cursor.execute("INSERT INTO notes (facility_id, note) VALUES (?, ?)", (facility_id, note))
+                else:
+                    cursor.execute("INSERT INTO notes (facility_id, note) VALUES (%s, %s)", (facility_id, note))
                 self.connection.commit()
                 cursor.close()
                 return True
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error adding note: {e}")
                 if self.backend == "lakebase":
                     self.connection.rollback()
         if facility_id not in self.notes:
@@ -173,11 +177,15 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute("SELECT note, created_at FROM notes WHERE facility_id = %s ORDER BY created_at DESC", (facility_id,))
+                if self.backend == "sqlite":
+                    cursor.execute("SELECT note, created_at FROM notes WHERE facility_id = ? ORDER BY created_at DESC", (facility_id,))
+                else:
+                    cursor.execute("SELECT note, created_at FROM notes WHERE facility_id = %s ORDER BY created_at DESC", (facility_id,))
                 results = [{"note": r[0], "created_at": str(r[1])} for r in cursor.fetchall()]
                 cursor.close()
                 return results
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error getting notes: {e}")
                 return []
         return self.notes.get(facility_id, [])
 
@@ -185,17 +193,25 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute(
-                    """INSERT INTO overrides (facility_id, original_score, new_score, reason)
-                       VALUES (%s, %s, %s, %s)
-                       ON CONFLICT (facility_id) DO UPDATE
-                       SET new_score = EXCLUDED.new_score, reason = EXCLUDED.reason""",
-                    (facility_id, original_score, new_score, reason),
-                )
+                if self.backend == "sqlite":
+                    cursor.execute(
+                        """INSERT OR REPLACE INTO overrides (facility_id, original_score, new_score, reason)
+                           VALUES (?, ?, ?, ?)""",
+                        (facility_id, original_score, new_score, reason),
+                    )
+                else:
+                    cursor.execute(
+                        """INSERT INTO overrides (facility_id, original_score, new_score, reason)
+                           VALUES (%s, %s, %s, %s)
+                           ON CONFLICT (facility_id) DO UPDATE
+                           SET new_score = EXCLUDED.new_score, reason = EXCLUDED.reason""",
+                        (facility_id, original_score, new_score, reason),
+                    )
                 self.connection.commit()
                 cursor.close()
                 return True
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error adding override: {e}")
                 if self.backend == "lakebase":
                     self.connection.rollback()
         self.overrides[facility_id] = {
@@ -208,13 +224,17 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute("SELECT original_score, new_score, reason, created_at FROM overrides WHERE facility_id = %s", (facility_id,))
+                if self.backend == "sqlite":
+                    cursor.execute("SELECT original_score, new_score, reason, created_at FROM overrides WHERE facility_id = ?", (facility_id,))
+                else:
+                    cursor.execute("SELECT original_score, new_score, reason, created_at FROM overrides WHERE facility_id = %s", (facility_id,))
                 row = cursor.fetchone()
                 cursor.close()
                 if row:
                     return {"original_score": row[0], "new_score": row[1], "reason": row[2], "created_at": str(row[3])}
                 return None
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error getting override: {e}")
                 return None
         return self.overrides.get(facility_id)
 
@@ -222,11 +242,15 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute("INSERT INTO shortlists (facility_id, list_name) VALUES (%s, %s) ON CONFLICT DO NOTHING", (facility_id, list_name))
+                if self.backend == "sqlite":
+                    cursor.execute("INSERT OR IGNORE INTO shortlists (facility_id, list_name) VALUES (?, ?)", (facility_id, list_name))
+                else:
+                    cursor.execute("INSERT INTO shortlists (facility_id, list_name) VALUES (%s, %s) ON CONFLICT DO NOTHING", (facility_id, list_name))
                 self.connection.commit()
                 cursor.close()
                 return True
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error adding to shortlist: {e}")
                 if self.backend == "lakebase":
                     self.connection.rollback()
         if list_name not in self.shortlists:
@@ -239,11 +263,15 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute("SELECT facility_id FROM shortlists WHERE list_name = %s ORDER BY added_at", (list_name,))
+                if self.backend == "sqlite":
+                    cursor.execute("SELECT facility_id FROM shortlists WHERE list_name = ? ORDER BY added_at", (list_name,))
+                else:
+                    cursor.execute("SELECT facility_id FROM shortlists WHERE list_name = %s ORDER BY added_at", (list_name,))
                 results = [r[0] for r in cursor.fetchall()]
                 cursor.close()
                 return results
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error getting shortlist: {e}")
                 return []
         return self.shortlists.get(list_name, [])
 
@@ -251,11 +279,15 @@ class LakebaseClient:
         if self.connection:
             try:
                 cursor = self.connection.cursor()
-                cursor.execute("DELETE FROM shortlists WHERE facility_id = %s AND list_name = %s", (facility_id, list_name))
+                if self.backend == "sqlite":
+                    cursor.execute("DELETE FROM shortlists WHERE facility_id = ? AND list_name = ?", (facility_id, list_name))
+                else:
+                    cursor.execute("DELETE FROM shortlists WHERE facility_id = %s AND list_name = %s", (facility_id, list_name))
                 self.connection.commit()
                 cursor.close()
                 return True
-            except Exception:
+            except Exception as e:
+                print(f"[persistence] Error removing from shortlist: {e}")
                 if self.backend == "lakebase":
                     self.connection.rollback()
         if list_name in self.shortlists and facility_id in self.shortlists[list_name]:

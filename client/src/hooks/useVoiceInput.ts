@@ -83,6 +83,15 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
   const [isSupported, setIsSupported] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  // Use refs to store callbacks to prevent triggering useEffect dependencies on every render
+  const onResultRef = useRef(onResult);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     // Check browser support
@@ -116,10 +125,10 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         if (finalText) {
           setTranscript(prev => prev + finalText);
           setInterimTranscript('');
-          onResult?.(finalText, true);
+          onResultRef.current?.(finalText, true);
         } else if (interimText) {
           setInterimTranscript(interimText);
-          onResult?.(interimText, false);
+          onResultRef.current?.(interimText, false);
         }
       };
 
@@ -127,7 +136,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         const errorMessage = getErrorMessage(event.error);
         setError(errorMessage);
         setIsListening(false);
-        onError?.(errorMessage);
+        onErrorRef.current?.(errorMessage);
       };
 
       recognition.onend = () => {
@@ -143,7 +152,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         recognitionRef.current.abort();
       }
     };
-  }, [language, continuous, interimResults, onResult, onError]);
+  }, [language, continuous, interimResults]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {

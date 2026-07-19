@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: data-legend-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHONPATH
+        value: .
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LAKEBASE_ENDPOINT
+        sync: false
+      - key: DATABRICKS_WAREHOUSE_ID
+        sync: false

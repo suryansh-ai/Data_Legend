@@ -62,20 +62,14 @@ async def recommend_hospitals(request: RecommendationRequest):
     from server.recommendation_engine import recommend_hospitals, RecommendationCriteria
     from server.data_loader import get_facilities_df, get_district_health_df
     
-    # Load facilities
-    df = get_facilities_df()
-    if df.empty:
+    # Load facilities from fast cache
+    from server.data_loader import get_facilities_list, get_district_health_dict
+    facilities = get_facilities_list()
+    if not facilities:
         raise HTTPException(status_code=404, detail="No facilities data available")
     
-    # Convert DataFrame to list of dicts
-    facilities = df.to_dict('records')
-    
-    # Load district health data
-    district_df = get_district_health_df()
-    district_health_data = {}
-    if not district_df.empty:
-        for _, row in district_df.iterrows():
-            district_health_data[row.get("district", "")] = row.to_dict()
+    # Load district health data from fast cache
+    district_health_data = get_district_health_dict()
     
     # Create criteria
     criteria = RecommendationCriteria(

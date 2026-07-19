@@ -9,7 +9,15 @@ import type {
   PaginatedResponse,
 } from './types'
 
-const BASE = '/api'
+function normalizeApiBase(value?: string) {
+  const trimmed = value?.trim()
+  if (!trimmed) return ''
+
+  return trimmed.replace(/\/$/, '').replace(/\/api$/, '')
+}
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE_URL)
+const BASE = API_BASE ? `${API_BASE}/api` : '/api'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -23,7 +31,89 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json()
 }
 
+let autocompleteCache: any[] | null = null
+let useBackendAutocomplete = true
+let isFetchingCache = false
+
+async function prefetchAutocompleteCache() {
+  if (isFetchingCache || autocompleteCache) return
+  isFetchingCache = true
+  try {
+    const all = await request<any[]>('/facilities/map')
+    autocompleteCache = all.map(f => ({
+      unique_id: f.unique_id,
+      name: f.name || '',
+      city: f.city || '',
+      state: f.state || '',
+    }))
+  } catch (err) {
+    console.error('Failed to prefetch autocomplete cache:', err)
+  } finally {
+    isFetchingCache = false
+  }
+}
+
+// Trigger prefetch on module load
+prefetchAutocompleteCache()
+
 export const api = {
+  async get<T>(path: string, options?: RequestInit): Promise<T> {
+    return request<T>(path, { method: 'GET', ...options })
+  },
+
+  async post<T>(path: string, body?: any, options?: RequestInit): Promise<T> {
+    return request<T>(path, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    })
+  },
+
+  async put<T>(path: string, body?: any, options?: RequestInit): Promise<T> {
+    return request<T>(path, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    })
+  },
+
+  async delete<T>(path: string, body?: any, options?: RequestInit): Promise<T> {
+    return request<T>(path, {
+      method: 'DELETE',
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    })
+  },
+
+  async autocomplete(q: string): Promise<Array<{ unique_id: string; name: string; city: string; state: string }>> {
+    const qLower = q.toLowerCase()
+
+    // If backend is known to be missing, do an instant in-memory lookup
+    if (!useBackendAutocomplete && autocompleteCache) {
+      const startsWith = autocompleteCache.filter(f => f.name.toLowerCase().startsWith(qLower))
+      const contains = autocompleteCache.filter(f => f.name.toLowerCase().includes(qLower) && !startsWith.some(sw => sw.unique_id === f.unique_id))
+      return [...startsWith, ...contains].slice(0, 10)
+    }
+
+    try {
+      return await request<Array<{ unique_id: string; name: string; city: string; state: string }>>(`/facilities/autocomplete?q=${encodeURIComponent(q)}`)
+    } catch (err) {
+      console.warn('Backend autocomplete endpoint failed, switching to client-side filtering.', err)
+      useBackendAutocomplete = false // Disable future backend network checks
+      
+      if (!autocompleteCache) {
+        await prefetchAutocompleteCache()
+      }
+
+      if (autocompleteCache) {
+        const startsWith = autocompleteCache.filter(f => f.name.toLowerCase().startsWith(qLower))
+        const contains = autocompleteCache.filter(f => f.name.toLowerCase().includes(qLower) && !startsWith.some(sw => sw.unique_id === f.unique_id))
+        return [...startsWith, ...contains].slice(0, 10)
+      }
+      return []
+    }
+  },
+
   async getFacilities(params: SearchParams = {}): Promise<PaginatedResponse<Facility>> {
     const query = new URLSearchParams()
     Object.entries(params).forEach(([k, v]) => {
