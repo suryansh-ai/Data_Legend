@@ -49,8 +49,10 @@ def _ensure_trust_columns(df: pd.DataFrame) -> pd.DataFrame:
         for _, row in df.iterrows():
             result = score_facility(row.to_dict())
             scores.append(result)
-        df["_trust_score"] = [s.get("overall_score", 0) for s in scores]
-        df["_trust_signal"] = [s.get("trust_label", "unknown") for s in scores]
+        df["_trust_score"] = [s.get("overall_trust", 0) for s in scores]
+        df["_trust_signal"] = [s.get("overall_signal", "UNKNOWN") for s in scores]
+        df["_total_claims"] = [s.get("metadata", {}).get("total_claims", 0) for s in scores]
+        df["_corroborated"] = [s.get("metadata", {}).get("corroborated_claims", 0) for s in scores]
         print(f"[data] Computed trust scores for {len(df)} facilities")
     except Exception as e:
         print(f"[data] Could not compute trust scores: {e}")
