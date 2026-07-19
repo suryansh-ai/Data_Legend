@@ -2,11 +2,120 @@
 NGO Dashboard Routes — District health gap analysis and resource mapping.
 """
 
+import json
+import re
+from typing import List, Optional, Dict, Iterable
+
+import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional, Dict
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/ngo", tags=["ngo"])
+
+
+def _parse_specialty_values(value) -> List[str]:
+    """Normalize specialty values from JSON arrays, Python lists, or comma-separated strings."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return []
+
+    if isinstance(value, str):
+        raw_value = value.strip()
+        if not raw_value:
+            return []
+        try:
+            parsed = json.loads(raw_value)
+        except json.JSONDecodeError:
+            parsed = raw_value
+
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+        if isinstance(parsed, str):
+            if "," in parsed:
+                return [part.strip() for part in parsed.split(",") if part.strip()]
+            return [parsed.strip()]
+        return [str(parsed).strip()]
+
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    return [str(value).strip()]
+
+
+def _build_specialty_counts(specialty_values: Iterable[object]) -> Dict[str, int]:
+    """Count each specialty once per facility to avoid double counting duplicates."""
+    counts: Dict[str, int] = {}
+    for value in specialty_values:
+        facility_specs = set(_parse_specialty_values(value))
+        for specialty in facility_specs:
+            specialty_name = specialty.strip()
+            if specialty_name:
+                counts[specialty_name] = counts.get(specialty_name, 0) + 1
+    return counts
+
+
+def _format_specialty_name(name: str) -> str:
+    """Format specialty identifiers into readable labels for the UI."""
+    mappings = {
+        "gynecologyAndObstetrics": "Gynecology & Obstetrics",
+        "reproductiveEndocrinologyAndInfertility": "Reproductive Endocrinology & Infertility",
+        "endocrinologyAndDiabetesAndMetabolism": "Endocrinology & Diabetes",
+        "oralAndMaxillofacialSurgery": "Oral & Maxillofacial Surgery",
+        "icu": "ICU",
+        "emergencyMedicine": "Emergency Medicine",
+        "criticalCareMedicine": "Critical Care Medicine",
+        "maternalFetalMedicineOrPerinatology": "Maternal-Fetal Medicine",
+    }
+    if name in mappings:
+        return mappings[name]
+
+    cleaned = str(name).strip()
+    if not cleaned:
+        return ""
+
+    res = re.sub(r'(?<!^)(?=[A-Z])', ' ', cleaned)
+    return res.title().replace('And', '&')
+
+
+def _check_facility_has_capability(row, cap: str) -> bool:
+    """Check whether a facility row appears to have a capability via specialties, capability field, or description."""
+    cap_lower = cap.lower()
+
+    spec_keywords = {
+        "emergency": ["emergency", "criticalcare", "trauma"],
+        "maternity": ["obstetrics", "gynecology", "maternity", "reproductive", "maternal"],
+        "surgery": ["surgery"],
+        "icu": ["criticalcare", "icu"],
+        "pharmacy": ["pharmacy"],
+        "laboratory": ["pathology", "laboratory"],
+        "radiology": ["radiology", "imaging"],
+        "pediatrics": ["pediatrics"],
+    }
+
+    # 1. Check specialties first using normalized keyword matching.
+    specs = row.get("specialties")
+    if pd.notna(specs):
+        parsed_specs = _parse_specialty_values(specs)
+        keywords = spec_keywords.get(cap_lower, [cap_lower])
+        if any(any(kw in specialty.lower() for kw in keywords) for specialty in parsed_specs):
+            return True
+
+    # 2. Check capability field using normalized substring matching.
+    caps = row.get("capability")
+    if pd.notna(caps):
+        parsed_caps = _parse_specialty_values(caps)
+        if any(cap_lower in str(c).lower() for c in parsed_caps):
+            return True
+
+    # 3. Check description fallback with keyword-aware matching.
+    desc = row.get("description")
+    if pd.notna(desc) and isinstance(desc, str):
+        desc_lower = desc.lower()
+        if any(keyword in desc_lower for keyword in spec_keywords.get(cap_lower, [cap_lower])):
+            return True
+        if cap_lower in desc_lower:
+            return True
+
+    return False
 
 
 class GapAnalysisRequest(BaseModel):
@@ -17,9 +126,17 @@ class GapAnalysisRequest(BaseModel):
     max_distance_km: float = 50.0
 
 
+_ngo_dashboard_cache = None
+_resource_gaps_cache = {}
+_intervention_plan_cache = {}
+
 @router.get("/dashboard")
 async def get_ngo_dashboard():
     """Get NGO dashboard overview with key metrics."""
+    global _ngo_dashboard_cache
+    if _ngo_dashboard_cache is not None:
+        return _ngo_dashboard_cache
+        
     from server.data_loader import get_facilities_df, get_district_health_df
     
     facilities_df = get_facilities_df()
@@ -54,41 +171,28 @@ async def get_ngo_dashboard():
             "avg_electricity": round(district_df["electricity_pct"].mean(), 1) if "electricity_pct" in district_df.columns else 0,
         }
     
-    # Capability gaps
+    # Capability gaps (analyzing specialties)
     capability_gaps = {}
-    if "capability" in facilities_df.columns:
-        import json
-        all_capabilities = []
-        for cap in facilities_df["capability"].dropna():
-            try:
-                if isinstance(cap, str):
-                    parsed = json.loads(cap)
-                    if isinstance(parsed, list):
-                        all_capabilities.extend(parsed)
-                elif isinstance(cap, list):
-                    all_capabilities.extend(cap)
-            except:
-                if isinstance(cap, str):
-                    all_capabilities.extend([c.strip() for c in cap.split(",")])
-        
-        # Count capabilities
-        cap_counts = {}
-        for cap in all_capabilities:
-            cap_lower = cap.lower().strip()
-            cap_counts[cap_lower] = cap_counts.get(cap_lower, 0) + 1
-        
-        # Identify gaps (capabilities with low coverage)
-        total_with_capability = sum(cap_counts.values())
-        for cap, count in cap_counts.items():
+    if "specialties" in facilities_df.columns:
+        spec_counts = _build_specialty_counts(facilities_df["specialties"].dropna())
+
+        # Group by formatted name to avoid collisions (e.g. ophthalmology and Ophthalmology)
+        formatted_counts = {}
+        for spec, count in spec_counts.items():
+            pretty_name = _format_specialty_name(spec)
+            formatted_counts[pretty_name] = formatted_counts.get(pretty_name, 0) + count
+
+        # Gaps are specialties with lower coverage (< 30%)
+        for pretty_name, count in formatted_counts.items():
             coverage_pct = (count / total_facilities * 100) if total_facilities > 0 else 0
-            if coverage_pct < 10:  # Less than 10% coverage
-                capability_gaps[cap] = {
+            if coverage_pct < 30:
+                capability_gaps[pretty_name] = {
                     "count": count,
                     "coverage_pct": round(coverage_pct, 1),
-                    "status": "critical" if coverage_pct < 5 else "low"
+                    "status": "critical" if coverage_pct < 18 else "low"
                 }
     
-    return {
+    _ngo_dashboard_cache = {
         "status": "success",
         "data": {
             "overview": {
@@ -101,6 +205,7 @@ async def get_ngo_dashboard():
             "capability_gaps": capability_gaps,
         }
     }
+    return _ngo_dashboard_cache
 
 
 @router.post("/gap-analysis")
@@ -125,33 +230,16 @@ async def analyze_gaps(request: GapAnalysisRequest):
     if request.district and city_col in facilities_df.columns:
         facilities_df = facilities_df[facilities_df[city_col] == request.district]
     
-    # Analyze capabilities
+    # Analyze specialties
     capability_analysis = {}
-    if "capability" in facilities_df.columns:
-        all_capabilities = []
-        for cap in facilities_df["capability"].dropna():
-            try:
-                if isinstance(cap, str):
-                    parsed = json.loads(cap)
-                    if isinstance(parsed, list):
-                        all_capabilities.extend(parsed)
-                elif isinstance(cap, list):
-                    all_capabilities.extend(cap)
-            except:
-                if isinstance(cap, str):
-                    all_capabilities.extend([c.strip() for c in cap.split(",")])
-        
-        # Count capabilities
-        cap_counts = {}
-        for cap in all_capabilities:
-            cap_lower = cap.lower().strip()
-            cap_counts[cap_lower] = cap_counts.get(cap_lower, 0) + 1
-        
-        # Calculate coverage
+    if "specialties" in facilities_df.columns:
+        spec_counts = _build_specialty_counts(facilities_df["specialties"].dropna())
+
         total_facilities = len(facilities_df)
-        for cap, count in cap_counts.items():
+        for spec, count in spec_counts.items():
             coverage_pct = (count / total_facilities * 100) if total_facilities > 0 else 0
-            capability_analysis[cap] = {
+            pretty_name = _format_specialty_name(spec)
+            capability_analysis[pretty_name] = {
                 "count": count,
                 "coverage_pct": round(coverage_pct, 1),
                 "facilities_with_cap": count,
@@ -204,6 +292,11 @@ async def analyze_gaps(request: GapAnalysisRequest):
 @router.get("/resource-gaps")
 async def get_resource_gaps(state: Optional[str] = None):
     """Get resource gaps analysis for a state or nationwide."""
+    global _resource_gaps_cache
+    cache_key = state or "nationwide"
+    if cache_key in _resource_gaps_cache:
+        return _resource_gaps_cache[cache_key]
+
     from server.data_loader import get_facilities_df, get_district_health_df
     import json
     
@@ -228,26 +321,20 @@ async def get_resource_gaps(state: Optional[str] = None):
     resource_gaps = {}
     total_facilities = len(facilities_df)
     
+    import pandas as pd
     for cap in essential_capabilities:
         # Count facilities with this capability
         facilities_with_cap = 0
-        if "capability" in facilities_df.columns:
-            for cap_str in facilities_df["capability"].dropna():
-                try:
-                    if isinstance(cap_str, str):
-                        parsed = json.loads(cap_str)
-                        if isinstance(parsed, list) and cap in [c.lower() for c in parsed]:
-                            facilities_with_cap += 1
-                except:
-                    if isinstance(cap_str, str) and cap in cap_str.lower():
-                        facilities_with_cap += 1
+        for _, row in facilities_df.iterrows():
+            if _check_facility_has_capability(row, cap):
+                facilities_with_cap += 1
         
         coverage_pct = (facilities_with_cap / total_facilities * 100) if total_facilities > 0 else 0
         
         # Determine gap severity
-        if coverage_pct < 10:
+        if coverage_pct < 15:
             severity = "critical"
-        elif coverage_pct < 25:
+        elif coverage_pct < 30:
             severity = "high"
         elif coverage_pct < 50:
             severity = "medium"
@@ -286,7 +373,7 @@ async def get_resource_gaps(state: Optional[str] = None):
                 "districts": low_insurance["district"].tolist() if "district" in low_insurance.columns else [],
             }
     
-    return {
+    res = {
         "status": "success",
         "data": {
             "state": state or "nationwide",
@@ -295,11 +382,18 @@ async def get_resource_gaps(state: Optional[str] = None):
             "district_gaps": district_gaps,
         }
     }
+    _resource_gaps_cache[cache_key] = res
+    return res
 
 
 @router.get("/intervention-plan")
 async def get_intervention_plan(state: Optional[str] = None, capability: Optional[str] = None):
     """Get recommended intervention plan for improving healthcare access."""
+    global _intervention_plan_cache
+    cache_key = (state or "nationwide", capability or "all")
+    if cache_key in _intervention_plan_cache:
+        return _intervention_plan_cache[cache_key]
+
     from server.data_loader import get_facilities_df
     import json
     
@@ -372,7 +466,7 @@ async def get_intervention_plan(state: Optional[str] = None, capability: Optiona
     # Sort by priority
     interventions.sort(key=lambda x: 0 if x["priority"] == "high" else 1)
     
-    return {
+    res = {
         "status": "success",
         "data": {
             "state": state or "nationwide",
@@ -385,3 +479,5 @@ async def get_intervention_plan(state: Optional[str] = None, capability: Optiona
             }
         }
     }
+    _intervention_plan_cache[cache_key] = res
+    return res

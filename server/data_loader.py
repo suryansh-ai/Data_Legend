@@ -12,6 +12,7 @@ from typing import Optional
 
 _df: Optional[pd.DataFrame] = None
 _district_df: Optional[pd.DataFrame] = None
+_lower_cache: dict[str, pd.Series] = {}
 
 # Detect if we're on Databricks
 _ON_DATABRICKS = bool(os.getenv("DATABRICKS_WAREHOUSE_ID"))
@@ -67,6 +68,21 @@ def _ensure_trust_columns(df: pd.DataFrame) -> pd.DataFrame:
         df["_trust_signal"] = "unknown"
 
     return df
+
+
+def _lowered_series(column: str) -> pd.Series:
+    global _lower_cache
+    if column in _lower_cache:
+        return _lower_cache[column]
+
+    df = get_facilities_df()
+    if df.empty or column not in df.columns:
+        series = pd.Series([""] * len(df), index=df.index)
+    else:
+        series = df[column].fillna("").astype(str).str.lower()
+
+    _lower_cache[column] = series
+    return series
 
 
 def _load_from_parquet() -> Optional[pd.DataFrame]:
@@ -162,12 +178,14 @@ def load_facilities() -> pd.DataFrame:
         df = _load_from_warehouse()
         if df is not None and not df.empty:
             _df = df
+            _lower_cache.clear()
             return _df
 
         print("[data] SQL Warehouse failed, falling back to parquet...")
         df = _load_from_parquet()
         if df is not None and not df.empty:
             _df = df
+            _lower_cache.clear()
             return _df
     else:
         # Local dev: parquet FIRST (fast), SQL Warehouse as fallback
@@ -180,6 +198,7 @@ def load_facilities() -> pd.DataFrame:
         df = _load_from_warehouse()
         if df is not None and not df.empty:
             _df = df
+            _lower_cache.clear()
             return _df
 
     print("[data] WARNING: No data loaded from any source!")
@@ -223,7 +242,12 @@ def get_facility_by_id(facility_id: str) -> Optional[dict]:
     return row
 
 
+_dataset_stats_cache = None
+
 def get_dataset_stats() -> dict:
+    global _dataset_stats_cache
+    if _dataset_stats_cache is not None:
+        return _dataset_stats_cache
     df = get_facilities_df()
     if df.empty:
         return {
@@ -233,7 +257,7 @@ def get_dataset_stats() -> dict:
         }
     sc = _STATE_COL or "state"
     cc = _CITY_COL or "city"
-    return {
+    _dataset_stats_cache = {
         "total": len(df),
         "states": int(df[sc].nunique()) if sc in df.columns else 0,
         "cities": int(df[cc].nunique()) if cc in df.columns else 0,
@@ -245,9 +269,15 @@ def get_dataset_stats() -> dict:
         "with_doctors": int(df["_has_doctors"].sum()) if "_has_doctors" in df.columns else int(df["numberDoctors"].notna().sum()) if "numberDoctors" in df.columns else 0,
         "with_capacity": int(df["_has_capacity"].sum()) if "_has_capacity" in df.columns else int(df["capacity"].notna().sum()) if "capacity" in df.columns else 0,
     }
+    return _dataset_stats_cache
 
+
+_column_completeness_cache = None
 
 def get_column_completeness() -> dict:
+    global _column_completeness_cache
+    if _column_completeness_cache is not None:
+        return _column_completeness_cache
     df = get_facilities_df()
     if df.empty:
         return {}
@@ -258,10 +288,16 @@ def get_column_completeness() -> dict:
         "specialties", "numberDoctors", "capacity",
         sc, cc, "latitude", "longitude",
     ]
-    return {col: int(df[col].notna().sum()) for col in key_cols if col in df.columns}
+    _column_completeness_cache = {col: int(df[col].notna().sum()) for col in key_cols if col in df.columns}
+    return _column_completeness_cache
 
+
+_state_stats_cache = None
 
 def get_state_stats() -> list[dict]:
+    global _state_stats_cache
+    if _state_stats_cache is not None:
+        return _state_stats_cache
     df = get_facilities_df()
     if df.empty:
         return []
@@ -274,15 +310,22 @@ def get_state_stats() -> list[dict]:
     grouped = grouped.rename(columns={sc: "state"})
     grouped["avg_trust"] = grouped["avg_trust"].fillna(0).round(1)
     grouped["low_trust_count"] = grouped["low_trust_count"].fillna(0).astype(int)
-    return grouped.sort_values("total", ascending=False).to_dict("records")
+    _state_stats_cache = grouped.sort_values("total", ascending=False).to_dict("records")
+    return _state_stats_cache
 
+
+_trust_distribution_cache = None
 
 def get_trust_distribution() -> dict:
+    global _trust_distribution_cache
+    if _trust_distribution_cache is not None:
+        return _trust_distribution_cache
     df = get_facilities_df()
     if df.empty:
         return {}
     counts = df["_trust_signal"].value_counts()
-    return {str(k): int(v) for k, v in counts.items()}
+    _trust_distribution_cache = {str(k): int(v) for k, v in counts.items()}
+    return _trust_distribution_cache
 
 
 def get_data_source_info() -> dict:
@@ -309,3 +352,44 @@ def get_data_source_info() -> dict:
         "warehouse_available": warehouse,
         "persistence_backend": persistence,
     }
+
+
+_facilities_list = None
+_district_health_dict = None
+
+
+def get_facilities_list() -> list:
+    global _facilities_list
+    if _facilities_list is not None:
+        return _facilities_list
+    df = get_facilities_df()
+    if df.empty:
+        return []
+    
+    # Pre-clean NaN values so it is JSON serializable
+    df_clean = df.copy()
+    for col in df_clean.columns:
+        if df_clean[col].dtype == object or df_clean[col].dtype == 'O':
+            df_clean[col] = df_clean[col].fillna('')
+        else:
+            df_clean[col] = df_clean[col].fillna(0)
+    _facilities_list = df_clean.to_dict('records')
+    return _facilities_list
+
+
+def get_district_health_dict() -> dict:
+    global _district_health_dict
+    if _district_health_dict is not None:
+        return _district_health_dict
+    df = get_district_health_df()
+    if df.empty:
+        return {}
+    _district_health_dict = {}
+    for _, row in df.iterrows():
+        r_dict = row.to_dict()
+        for k, v in r_dict.items():
+            if pd.isna(v):
+                r_dict[k] = None
+        _district_health_dict[row.get("district", "")] = r_dict
+    return _district_health_dict
+

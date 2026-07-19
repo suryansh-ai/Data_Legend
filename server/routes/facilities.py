@@ -3,8 +3,9 @@ Facilities API — List, detail, map data endpoints.
 """
 
 import math
+import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
-from server.data_loader import get_facilities_df, get_facility_by_id, _STATE_COL, _CITY_COL
+from server.data_loader import get_facilities_df, get_facility_by_id, _lowered_series, _STATE_COL, _CITY_COL
 
 router = APIRouter(tags=["facilities"])
 
@@ -14,6 +15,39 @@ def _sc():
 
 def _cc():
     return _CITY_COL or "city"
+
+
+@router.get("/facilities/autocomplete")
+def autocomplete_facilities(q: str = Query("", min_length=1)):
+    df = get_facilities_df()
+    if df.empty or not q:
+        return []
+    
+    q_lower = q.lower()
+    cc = _cc()
+    sc = _sc()
+    
+    # Filter by prefix first (starts with)
+    names = _lowered_series("name")
+    starts_mask = names.str.startswith(q_lower, na=False)
+    starts_with = df[starts_mask]
+    
+    # Filter by containment (contains) excluding starts_with
+    contains_mask = names.str.contains(q_lower, na=False) & ~starts_mask
+    contains = df[contains_mask]
+    
+    # Concatenate starts_with first, then contains
+    matched = pd.concat([starts_with, contains]).head(10)
+    
+    results = []
+    for _, row in matched.iterrows():
+        results.append({
+            "unique_id": row.get("unique_id"),
+            "name": row.get("name"),
+            "city": row.get(cc) if cc in row else row.get("address_city"),
+            "state": row.get(sc) if sc in row else row.get("address_stateOrRegion"),
+        })
+    return results
 
 
 @router.get("/facilities")
@@ -33,22 +67,24 @@ def list_facilities(
         return {"items": [], "total": 0, "page": 1, "limit": limit, "pages": 0}
 
     sc, cc = _sc(), _cc()
-    filtered = df.copy()
+    filtered = df
 
     if q:
         q_lower = q.lower()
+        names = _lowered_series("name")
+        descs = _lowered_series("description")
         mask = (
-            filtered["name"].str.lower().str.contains(q_lower, na=False) |
-            filtered["description"].str.lower().str.contains(q_lower, na=False)
+            names.str.contains(q_lower, regex=False) |
+            descs.str.contains(q_lower, regex=False)
         )
         if cc in filtered.columns:
-            mask = mask | filtered[cc].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series(cc).str.contains(q_lower, regex=False)
         if sc in filtered.columns:
-            mask = mask | filtered[sc].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series(sc).str.contains(q_lower, regex=False)
         if "capability" in filtered.columns:
-            mask = mask | filtered["capability"].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series("capability").str.contains(q_lower, regex=False)
         if "specialties" in filtered.columns:
-            mask = mask | filtered["specialties"].astype(str).str.lower().str.contains(q_lower, na=False)
+            mask = mask | _lowered_series("specialties").str.contains(q_lower, regex=False)
         filtered = filtered[mask]
 
     if state and sc in filtered.columns:
@@ -104,20 +140,27 @@ def map_data(state: str = Query(None), trust_signal: str = Query(None)):
 
     filtered = filtered.dropna(subset=["latitude", "longitude"])
 
-    items = []
-    for _, row in filtered.iterrows():
-        item = {
-            "unique_id": row.get("unique_id"),
-            "name": row.get("name"),
-            "city": row.get(cc) if cc in row else row.get("address_city"),
-            "state": row.get(sc) if sc in row else row.get("address_stateOrRegion"),
-            "latitude": float(row["latitude"]) if not math.isnan(row["latitude"]) else None,
-            "longitude": float(row["longitude"]) if not math.isnan(row["longitude"]) else None,
-            "_trust_score": float(row["_trust_score"]) if "_trust_score" in row and not math.isnan(row.get("_trust_score", float("nan"))) else None,
-            "_trust_signal": row.get("_trust_signal"),
-        }
-        items.append(item)
-
+    cols_to_select = ["unique_id", "name", cc, sc, "latitude", "longitude", "_trust_score", "_trust_signal", "capability", "capacity"]
+    cols_present = [c for c in cols_to_select if c in filtered.columns]
+    
+    subset = filtered[cols_present].copy()
+    subset["latitude"] = subset["latitude"].fillna(0.0)
+    subset["longitude"] = subset["longitude"].fillna(0.0)
+    if "_trust_score" in subset.columns:
+        subset["_trust_score"] = subset["_trust_score"].fillna(0.0)
+        
+    items = subset.to_dict('records')
+    for item in items:
+        if cc in item:
+            item["city"] = item[cc]
+        else:
+            item["city"] = item.get("address_city")
+            
+        if sc in item:
+            item["state"] = item[sc]
+        else:
+            item["state"] = item.get("address_stateOrRegion")
+            
     return items
 
 

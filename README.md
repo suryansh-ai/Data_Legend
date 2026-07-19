@@ -1,105 +1,118 @@
 # Data Legend
 
-Healthcare Facility Intelligence Platform for India — React + FastAPI on Databricks Apps.
+**Healthcare Facility Intelligence for India** — a polished React + FastAPI platform that turns facility claims into trust signals, coverage gap maps, and actionable recommendations.
 
-## Overview
+## What it does
 
-Scores and verifies healthcare facility capability claims across ~1,889 Indian facilities using claim-level trust analysis. Built for the Databricks Apps & Agents for Good 2026 hackathon.
+Data Legend helps analysts and health planners:
 
-## Tracks
+- Search and shortlist hospitals by capability, region, and trust signal
+- Surface facilities with strong evidence vs weak claims
+- Visualize medical desert zones and coverage gaps
+- Explore detailed facility profiles with trust breakdowns and maps
+- Use triage-driven specialty recommendations and clinic booking insights
+- Persist analyst notes, overrides, and shortlist state securely
 
-| Track | Description |
-|-------|-------------|
-| **Trust Desk** | Search, filter, and score facility claims with evidence breakdown |
-| **Medical Desert** | Identify underserved regions and coverage gaps |
-| **Facility Detail** | Deep dive with trust radar, evidence table, notes, shortlist |
-| **Data Readiness** | Audit data quality, completeness, and trust distribution |
+## User experience
 
-## Tech Stack
+The app is built as a modern single-page experience with:
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, Recharts, Leaflet, Framer Motion
-- **Backend**: FastAPI, pandas, pyarrow, MLflow 3
-- **Data**: Parquet files, Lakebase (Postgres) with in-memory fallback
-- **Deploy**: Databricks Apps (single uvicorn process)
+- **Trust Desk**: searchable facility scoring and evidence review
+- **Medical Desert**: regional coverage analysis with map overlays
+- **Facility Detail**: deep dive into facility trust, services, and location
+- **Data Readiness**: dataset completeness, quality, and trust distribution
+- **Triage**: symptom-driven specialty guidance and hospital recommendations
+- **Booking**: appointment flow for facility services
+- **NGO Dashboard**: NGO-focused action and capacity monitoring
 
-## Local Development
+## Tech stack
+
+- Frontend: **React 19**, **TypeScript**, **Vite**, **Tailwind CSS**, **Recharts**, **Leaflet**, **Framer Motion**
+- Backend: **FastAPI**, **pandas**, **pyarrow**, **MLflow 3**, **uvicorn**
+- Data: **Parquet-first local data**, **Databricks SQL Warehouse fallback**, **Lakebase / SQLite persistence**
+- Deploy: **Databricks Apps** with a single backend process and static SPA assets
+
+## Quick start
 
 ```bash
-# Install dependencies
 npm install
 pip install -r requirements.txt
-
-# Build frontend
 npm run build
-
-# Run backend
 npm start
-# or
-uvicorn app:app --host 0.0.0.0 --port 8080
 ```
 
-App runs at `http://localhost:8080`.
+Open `http://localhost:8080` after startup.
 
-## Project Structure
+## Local development notes
 
-```
-├── app.py                  # FastAPI entry point
-├── app.yaml                # Databricks Apps config
-├── package.json            # npm scripts + dependencies
+- `npm run dev` starts the frontend dev server for UI iteration
+- `npm run build` generates the SPA in `client/dist`
+- `uvicorn app:app --host 0.0.0.0 --port 8080` launches the backend directly
+- Backend startup loads the facility dataset from local Parquet by default
+
+## Active project structure
+
+```text
+.
+├── app.py
+├── app.yaml
 ├── client/
-│   ├── src/
-│   │   ├── App.tsx         # Router + layout
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # 5 page components
-│   │   └── lib/            # API client, types, utils
-│   └── dist/               # Built frontend (served by FastAPI)
+│   ├── index.html
+│   ├── public/
+│   └── src/
+│       ├── App.tsx
+│       ├── components/
+│       ├── lib/
+│       └── pages/
+├── data/
+│   ├── data_legend_local.db
+│   ├── district_health.parquet
+│   ├── facilities_master.parquet
+│   ├── facilities_scored.parquet
+│   └── facilities.parquet
 ├── server/
-│   ├── trust_engine.py     # Claim-level trust scoring
-│   ├── data_loader.py      # Parquet data loading
-│   ├── lakebase.py         # Persistence (Lakebase/Postgres)
-│   └── routes/             # API endpoints
-└── data/
-    └── facilities_scored.parquet
+│   ├── ai_service.py
+│   ├── booking_engine.py
+│   ├── data_loader.py
+│   ├── lakebase.py
+│   ├── routes/
+│   ├── sql_connector.py
+│   ├── triage_engine.py
+│   ├── trust_engine.py
+│   └── outcome_tracker.py
+├── requirements.txt
+├── package.json
+└── README.md
 ```
 
-## API Endpoints
+## Main APIs
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/facilities` | List facilities (paginated, filterable) |
-| GET | `/api/facilities/{id}` | Facility detail |
-| GET | `/api/facilities/map` | Map data with coordinates |
-| POST | `/api/trust/score/{id}` | Score a facility |
-| POST | `/api/trust/batch` | Batch score multiple facilities |
-| GET | `/api/search?q=` | Natural language search |
-| GET | `/api/stats` | Dataset statistics |
-| GET | `/api/stats/states` | State-level coverage |
-| GET | `/api/stats/trust-distribution` | Trust signal distribution |
-| GET | `/api/stats/column-completeness` | Field completeness |
-| GET/POST | `/api/persistence/notes` | Analyst notes |
-| GET/POST | `/api/persistence/shortlist` | Facility shortlist |
+| Method | Path                                     | Purpose                             |
+| ------ | ---------------------------------------- | ----------------------------------- |
+| GET    | `/api/facilities`                      | Search, filter, and page facilities |
+| GET    | `/api/facilities/{id}`                 | Facility detail by ID               |
+| GET    | `/api/facilities/map`                  | Map-ready facility geo data         |
+| GET    | `/api/facilities/autocomplete`         | Facility name autocomplete          |
+| POST   | `/api/trust/score/{id}`                | Compute facility trust score        |
+| POST   | `/api/trust/batch`                     | Batch trust scoring                 |
+| GET    | `/api/search?q=`                       | Full-text facility search           |
+| GET    | `/api/stats`                           | Dataset summary metrics             |
+| GET    | `/api/stats/states`                    | State-level coverage stats          |
+| GET    | `/api/stats/trust-distribution`        | Trust signal breakdown              |
+| GET    | `/api/stats/column-completeness`       | Column completeness counts          |
+| GET    | `/api/stats/district-health`           | NFHS-5 district health metrics      |
+| GET    | `/api/persistence/notes/{facility_id}` | Get analyst notes                   |
+| POST   | `/api/persistence/notes`               | Save a note                         |
+| GET    | `/api/persistence/shortlist`           | Get shortlist                       |
+| POST   | `/api/persistence/shortlist`           | Add to shortlist                    |
 
-## Trust Engine
+## Data flow
 
-Claim-level scoring analyzes each capability (ICU, maternity, surgery, etc.) against 5 evidence fields:
+- Local dev loads facility data from the first available Parquet file in `data/`
+- Databricks uses SQL Warehouse first, then falls back to local Parquet
+- Persistence uses Lakebase when available, otherwise SQLite fallback via `data/data_legend_local.db`
+- The UI fetches data through a clean API layer defined in `client/src/lib/api.ts`
 
-- **CORROBORATED** — Multiple fields confirm the claim (green)
-- **CLAIMED_ONLY** — Single field mentions it (amber)
-- **WEAK** — Negated or aspirational language (red)
-- **UNKNOWN** — No evidence found (gray)
+## Notes
 
-## Deployment
-
-```bash
-# Commit and push
-git add -A && git commit -m "Update" && git push
-
-# Deploy to Databricks Apps
-curl -X POST https://<workspace>/api/2.0/apps/data-legend-v2/deployments \
-  -H "Authorization: Bearer <token>" \
-  -d '{"mode": "SNAPSHOT"}'
-```
-
-## License
-
-Built for Databricks Apps & Agents for Good 2026.
+This repository is designed for rapid Databricks deployment and local experimentation. Feel free to extend the AI routes, add new facility insights, or adapt the dataset to broader health systems.

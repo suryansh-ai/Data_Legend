@@ -143,8 +143,75 @@ RED_FLAGS = [
 
 
 def extract_symptoms(text: str) -> List[str]:
-    """Extract symptoms from free text."""
+    """Extract symptoms from free text with Hindi/Hinglish support."""
     text_lower = text.lower()
+    
+    # Map common Hindi/Hinglish keywords to English terms
+    hindi_mappings = {
+        # Cardiology
+        "seene me dard": "chest pain",
+        "seene mai dard": "chest pain",
+        "chhati me dard": "chest pain",
+        "dil me dard": "chest pain",
+        "dhadkan": "palpitations",
+        "saans phulna": "shortness of breath",
+        "saans lene me": "shortness of breath",
+        
+        # Orthopedics
+        "haddi": "broken bone",
+        "toot": "broken bone",
+        "tut": "broken bone",
+        "kamar dard": "back pain",
+        "kamar me dard": "back pain",
+        "jodon me dard": "joint pain",
+        "ghutne me dard": "joint pain",
+        
+        # Eye
+        "aankh": "eye pain",
+        "dhundhla": "vision loss",
+        "motiyabind": "cataract",
+        
+        # Dental
+        "daant": "toothache",
+        "teeth": "toothache",
+        "masude": "gum disease",
+        
+        # Maternity
+        "pregnancy": "pregnancy",
+        "delivery": "labor",
+        "bachha hone": "labor",
+        
+        # Pediatrics
+        "bachhe": "child fever",
+        "bacche": "child fever",
+        
+        # Oncology
+        "cancer": "chemotherapy",
+        "ganth": "lump",
+        "gaanth": "lump",
+        
+        # Renal
+        "kidney": "kidney pain",
+        "peshab": "urinary problems",
+        
+        # Emergency
+        "khoon beh raha": "severe bleeding",
+        "behos": "unconscious",
+        "daura": "seizure",
+        
+        # General
+        "bukhar": "fever",
+        "sir dard": "headache",
+        "pet me dard": "abdominal pain",
+        "pet dard": "abdominal pain",
+        "ulti": "vomiting",
+        "khansi": "cough",
+    }
+    
+    for hi, eng in hindi_mappings.items():
+        if hi in text_lower:
+            text_lower += f" {eng}"
+
     found_symptoms = []
     
     # Check for multi-word symptoms first

@@ -1,25 +1,25 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Database, BarChart3, CheckCircle2, AlertCircle } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { Database, CheckCircle, AlertTriangle, AlertCircle, Info, Sparkles, TrendingUp } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { api } from '@/lib/api'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import type { FacilityStats, TrustResult } from '@/lib/types'
+import type { FacilityStats } from '@/lib/types'
 import { formatNumber, trustLabel } from '@/lib/utils'
 
 const FIELD_LABELS: Record<string, string> = {
-  name: 'Name',
-  description: 'Description',
-  capability: 'Capability',
-  procedure: 'Procedure',
-  equipment: 'Equipment',
-  specialties: 'Specialties',
-  numberDoctors: 'Doctors',
-  capacity: 'Capacity',
-  address_stateOrRegion: 'State',
-  address_city: 'City',
-  latitude: 'Latitude',
-  longitude: 'Longitude',
+  name: 'Hospital Name',
+  description: 'Unstructured Description',
+  capability: 'Stated Capabilities',
+  procedure: 'Procedure Logs',
+  equipment: 'Equipment Inventory',
+  specialties: 'Clinical Specialties',
+  numberDoctors: 'Doctors Count',
+  capacity: 'Bed Capacity',
+  address_stateOrRegion: 'State Name',
+  address_city: 'City Name',
+  latitude: 'Latitude Coordinate',
+  longitude: 'Longitude Coordinate',
 }
 
 const SIGNAL_COLORS: Record<string, string> = {
@@ -53,73 +53,84 @@ export default function DataReadiness() {
     }))
     .sort((a, b) => b.completeness - a.completeness)
 
-  const trustPieData = Object.entries(trustDist).map(([signal, count]) => ({
-    name: trustLabel(signal),
-    value: count,
-    color: SIGNAL_COLORS[signal] || '#6b7280',
-  }))
-
   const avgCompleteness = completenessData.reduce((s, d) => s + d.completeness, 0) / (completenessData.length || 1)
   const fieldsAbove80 = completenessData.filter(d => d.completeness >= 80).length
   const fieldsBelow50 = completenessData.filter(d => d.completeness < 50).length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 py-2">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          <Database className="mr-2 inline h-6 w-6 text-violet-500" />
-          Data Readiness
+        <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          Data Readiness & Quality
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Audit data quality, completeness, and trust distribution across all facility records
+          Audit completeness indicators, missing values, and corroboration distribution.
         </p>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card">
-          <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatNumber(stats?.total ?? 0)}</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Records</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card">
-          <p className="text-2xl font-bold text-brand-600">{avgCompleteness.toFixed(1)}%</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Avg Completeness</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card">
-          <p className="text-2xl font-bold text-emerald-500">{fieldsAbove80}</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Fields &gt; 80%</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card">
-          <p className="text-2xl font-bold text-red-500">{fieldsBelow50}</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Fields &lt; 50%</p>
-        </motion.div>
+        <div className="card p-5 space-y-1">
+          <span className="text-2xl font-black block" style={{ color: 'var(--text-primary)' }}>
+            {formatNumber(stats?.total ?? 0)}
+          </span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Total Records</span>
+          <span className="text-[10px] text-slate-400 block">All registry hospital rows</span>
+        </div>
+
+        <div className="card p-5 space-y-1">
+          <span className="text-2xl font-black block text-teal-700 dark:text-teal-400">
+            {avgCompleteness.toFixed(1)}%
+          </span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Avg Completeness</span>
+          <span className="text-[10px] text-slate-400 block">Overall data populate ratio</span>
+        </div>
+
+        <div className="card p-5 space-y-1">
+          <span className="text-2xl font-black block text-emerald-600">
+            {fieldsAbove80}
+          </span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Healthy Fields</span>
+          <span className="text-[10px] text-slate-400 block">Completeness above 80%</span>
+        </div>
+
+        <div className="card p-5 space-y-1 border-red-200 bg-red-50/20">
+          <span className="text-2xl font-black block text-red-600">
+            {fieldsBelow50}
+          </span>
+          <span className="text-xs font-bold text-red-800 dark:text-red-400 block">Sparse Fields</span>
+          <span className="text-[10px] text-red-500 block">Fields with missing values</span>
+        </div>
       </div>
 
+      {/* Main Layout Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Column Completeness */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="card">
-          <h2 className="mb-4 font-semibold" style={{ color: 'var(--text-primary)' }}>
-            <BarChart3 className="mr-2 inline h-5 w-5 text-brand-500" />
-            Column Completeness
-          </h2>
-          <div className="space-y-3">
+        {/* Column Completeness Progress Bars */}
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="card p-6 space-y-4">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>
+              📋 Field Fill Summary
+            </h2>
+            <p className="text-[10px] text-slate-400">What proportion of details are filled in our hospital database.</p>
+          </div>
+
+          <div className="space-y-3.5">
             {completenessData.map(({ field, completeness, count }) => (
-              <div key={field}>
-                <div className="flex items-center justify-between text-sm">
+              <div key={field} className="space-y-1">
+                <div className="flex items-center justify-between text-xs font-bold">
                   <span style={{ color: 'var(--text-primary)' }}>{field}</span>
-                  <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {count.toLocaleString('en-IN')} / {totalRows.toLocaleString('en-IN')} ({completeness.toFixed(1)}%)
+                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    {count.toLocaleString('en-IN')} / {totalRows.toLocaleString('en-IN')} ({completeness.toFixed(0)}%)
                   </span>
                 </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${completeness}%` }}
-                    transition={{ duration: 0.8, delay: 0.1 }}
+                <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
                     className="h-full rounded-full"
                     style={{
-                      backgroundColor: completeness >= 80 ? '#10b981' :
-                        completeness >= 50 ? '#f59e0b' : '#ef4444',
+                      width: `${completeness}%`,
+                      backgroundColor: completeness >= 80 ? 'var(--success)' :
+                        completeness >= 50 ? 'var(--warning)' : 'var(--danger)',
                     }}
                   />
                 </div>
@@ -128,108 +139,90 @@ export default function DataReadiness() {
           </div>
         </motion.div>
 
-        {/* Trust Distribution */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="card">
-          <h2 className="mb-4 font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Trust Signal Distribution
-          </h2>
-          {trustPieData.length > 0 ? (
-            <div className="flex items-center gap-6">
-              <ResponsiveContainer width="50%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={trustPieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    dataKey="value"
-                  >
-                    {trustPieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-2">
-                {trustPieData.map(d => (
-                  <div key={d.name} className="flex items-center gap-2 text-sm">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span style={{ color: 'var(--text-primary)' }}>{d.name}</span>
-                    <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {d.value.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        <div className="space-y-6">
+          {/* Trust Distribution */}
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-6 space-y-4">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>
+                🛡️ Verification Distribution
+              </h2>
+              <p className="text-[10px] text-slate-400">How many clinics fit each trust category.</p>
             </div>
-          ) : (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No trust distribution data available</p>
-          )}
 
-          {/* Issues */}
-          <div className="mt-6">
-            <h3 className="mb-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Data Quality Issues
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(trustDist).map(([signal, count]) => {
+                const color = SIGNAL_COLORS[signal] || '#6b7280';
+                return (
+                  <div key={signal} className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-900 flex justify-between items-center" style={{ borderColor: 'var(--border-color)' }}>
+                    <div>
+                      <span className="text-xs font-bold block" style={{ color: 'var(--text-primary)' }}>{trustLabel(signal)}</span>
+                      <span className="text-[9px] block text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Category</span>
+                    </div>
+                    <span className="text-base font-extrabold" style={{ color }}>{count.toLocaleString('en-IN')}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* Quality warnings */}
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card p-6 space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <AlertTriangle className="h-4.5 w-4.5 text-amber-500" />
+              Critical Data Action Items
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {completenessData
                 .filter(d => d.completeness < 50)
                 .map(d => (
-                  <div key={d.field} className="flex items-start gap-2 text-sm">
-                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-                    <span style={{ color: 'var(--text-secondary)' }}>
-                      <strong>{d.field}</strong> has only {d.completeness.toFixed(1)}% completeness — 
-                      {d.count.toLocaleString('en-IN')} of {totalRows.toLocaleString('en-IN')} records populated
-                    </span>
+                  <div key={d.field} className="p-3.5 rounded-xl border border-amber-200/50 bg-amber-50/20 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="h-4.5 w-4.5 text-amber-600 shrink-0" />
+                    <div>
+                      <h4 className="font-extrabold text-amber-900 dark:text-amber-400">{d.field} needs population</h4>
+                      <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">
+                        Only {d.completeness.toFixed(0)}% filled ({d.count.toLocaleString('en-IN')} locations). Lack of this data makes matching difficult.
+                      </p>
+                    </div>
                   </div>
                 ))}
-              {completenessData.filter(d => d.completeness < 50).length === 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span style={{ color: 'var(--text-secondary)' }}>All fields have &gt; 50% completeness</span>
-                </div>
-              )}
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Completeness Bar Chart */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="card">
-        <h2 className="mb-4 font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Field Completeness Overview
-        </h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={completenessData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <XAxis dataKey="field" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} domain={[0, 100]} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '12px',
-              }}
-            />
-            <Bar dataKey="completeness" radius={[4, 4, 0, 0]}>
-              {completenessData.map((entry, i) => (
-                <Cell
-                  key={i}
-                  fill={entry.completeness >= 80 ? '#10b981' : entry.completeness >= 50 ? '#f59e0b' : '#ef4444'}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      {/* Field Completeness Chart */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>
+            📊 Dataset Completeness Audit
+          </h2>
+          <p className="text-[10px] text-slate-400">Visual comparison of database columns completeness level.</p>
+        </div>
+
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={completenessData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+              <XAxis dataKey="field" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
+              <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                }}
+              />
+              <Bar dataKey="completeness" radius={[4, 4, 0, 0]}>
+                {completenessData.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={entry.completeness >= 80 ? '#0f766e' : entry.completeness >= 50 ? '#d97706' : '#b91c1c'}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </motion.div>
     </div>
   )

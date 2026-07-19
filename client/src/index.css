@@ -4,128 +4,208 @@
 
 @layer base {
   :root {
+    /* Premium Slate & Medical Teal Theme */
     --bg-primary: #ffffff;
-    --bg-secondary: #f9fafb;
-    --bg-tertiary: #f3f4f6;
-    --text-primary: #111827;
-    --text-secondary: #4b5563;
-    --text-muted: #9ca3af;
-    --border-color: #e5e7eb;
-    --border-hover: #d1d5db;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    
+    /* Glowing accents */
+    --accent: #0f766e; /* Deep Teal */
+    --accent-hover: #115e59;
+    --accent-light: #ccfbf1;
+    
+    /* Semantic colors with high contrast */
+    --success: #15803d; /* Rich Green */
+    --success-bg: #dcfce7;
+    
+    --warning: #b45309; /* Deep Amber */
+    --warning-bg: #fef3c7;
+    
+    --danger: #b91c1c; /* Crimson */
+    --danger-bg: #fee2e2;
+
+    --info: #0369a1; /* Ocean Blue */
+    --info-bg: #e0f2fe;
+
+    --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 20px 35px -10px rgba(15, 23, 42, 0.12), 0 12px 15px -8px rgba(15, 23, 42, 0.12);
+    
+    --radius-lg: 1rem;
+    --radius-md: 0.75rem;
+    --radius-sm: 0.5rem;
   }
 
   .dark {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
+    /* Premium Midnight Dark Theme */
+    --bg-primary: #0b0f19;
+    --bg-secondary: #111827;
+    --bg-tertiary: #1f2937;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
     --text-muted: #64748b;
-    --border-color: #334155;
-    --border-hover: #475569;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
-    --accent: #818cf8;
-    --accent-hover: #6366f1;
+    
+    --border-color: #1f2937;
+    --border-hover: #374151;
+    
+    --accent: #14b8a6; /* Vibrant Teal */
+    --accent-hover: #2dd4bf;
+    --accent-light: #115e59;
+    
+    --success: #22c55e;
+    --success-bg: #052e16;
+    
+    --warning: #f59e0b;
+    --warning-bg: #451a03;
+    
+    --danger: #ef4444;
+    --danger-bg: #450a0a;
+
+    --info: #38bdf8;
+    --info-bg: #0c4a6e;
+
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+    --shadow-lg: 0 20px 35px -10px rgba(0, 0, 0, 0.8);
   }
 
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
   }
 }
 
 @layer components {
+  /* Minimalist Premium Cards */
   .card {
-    @apply rounded-xl border p-4 transition-all;
+    @apply transition-all duration-300 ease-out;
     background-color: var(--bg-primary);
-    border-color: var(--border-color);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.02), 0 2px 4px -2px rgba(15, 23, 42, 0.02);
+    border-radius: var(--radius-lg);
   }
+  
   .card:hover {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-md);
+    border-color: rgba(15, 118, 110, 0.3);
+    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+    transform: translateY(-4px) scale(1.01);
   }
+  
+  /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors;
-    background-color: var(--accent);
-    color: white;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold transition-all duration-300 shadow-md active:scale-95 text-white bg-gradient-to-r from-teal-700 to-teal-600 hover:from-teal-800 hover:to-teal-700;
+    border-radius: var(--radius-md);
   }
+  
   .btn-primary:hover {
-    background-color: var(--accent-hover);
+    box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.3);
   }
+  
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 border px-5 py-2.5 text-sm font-bold transition-all duration-300 active:scale-95;
     border-color: var(--border-color);
     color: var(--text-primary);
     background-color: var(--bg-primary);
+    border-radius: var(--radius-md);
   }
+  
   .btn-secondary:hover {
-    border-color: var(--border-hover);
+    border-color: var(--accent);
     background-color: var(--bg-secondary);
+    color: var(--accent);
   }
+  
+  /* Inputs */
   .input {
-    @apply w-full rounded-lg border px-3 py-2 text-sm transition-colors outline-none;
+    @apply w-full border px-4 py-2.5 text-sm transition-all outline-none duration-300;
     border-color: var(--border-color);
     background-color: var(--bg-primary);
     color: var(--text-primary);
+    border-radius: var(--radius-md);
   }
+  
   .input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.1);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
   }
-  .input::placeholder {
-    color: var(--text-muted);
+  
+  /* Simple intuitive badges for anyone to understand */
+  .badge-trust {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider;
   }
-  .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
-  }
+  
   .badge-trust-high {
-    background-color: rgb(16 185 129 / 0.1);
-    color: #10b981;
+    background-color: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(21, 128, 61, 0.15);
   }
+  
   .badge-trust-medium {
-    background-color: rgb(245 158 11 / 0.1);
-    color: #f59e0b;
+    background-color: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid rgba(180, 83, 9, 0.15);
   }
+  
   .badge-trust-low {
-    background-color: rgb(239 68 68 / 0.1);
-    color: #ef4444;
+    background-color: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid rgba(185, 28, 28, 0.15);
   }
+  
   .badge-trust-unknown {
-    background-color: rgb(107 114 128 / 0.1);
-    color: #6b7280;
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+  }
+
+  /* Interactive items */
+  .nav-link-item {
+    @apply flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200;
+    color: var(--text-secondary);
+  }
+
+  .nav-link-item:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  .nav-link-item.active {
+    background-color: var(--accent-light);
+    color: var(--accent);
   }
 }
 
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
-    border-radius: 3px;
-  }
+/* Custom Scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 9999px;
 }
 
-/* Leaflet overrides */
+/* Leaflet Container customization */
 .leaflet-container {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: inherit;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
