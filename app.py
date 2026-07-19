@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from server.routes import facilities, trust, search, persistence, stats
 
@@ -59,7 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- API Routes (registered FIRST, before catch-all) ---
+# --- API Routes ---
 app.include_router(facilities.router, prefix="/api")
 app.include_router(trust.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
@@ -73,27 +74,43 @@ def health_check():
     return get_data_source_info()
 
 
-# --- Serve React build ---
+# --- Serve React SPA ---
 DIST_DIR = Path(__file__).parent / "client" / "dist"
 
 if DIST_DIR.exists():
-    # Mount static assets (CSS, JS, images)
-    app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="static-assets")
+    # Mount static assets at /assets/*
+    ASSETS_DIR = DIST_DIR / "assets"
+    if ASSETS_DIR.exists():
+        app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="static-assets")
 
-    # Catch-all: serve React for non-API, non-asset routes
-    @app.get("/{full_path:path}")
-    async def serve_react(full_path: str):
-        # Skip API routes (shouldn't reach here, but safety check)
-        if full_path.startswith("api/"):
-            return JSONResponse({"error": "Not found"}, status_code=404)
+    # Serve favicon and other root files
+    @app.get("/favicon.svg")
+    async def favicon():
+        return FileResponse(str(DIST_DIR / "favicon.svg"))
 
-        # Try to serve the file from dist
-        file_path = DIST_DIR / full_path
-        if file_path.is_file():
-            return FileResponse(str(file_path))
+    # SPA catch-all: only for non-API, non-asset requests
+    class SPAFilterMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            path = request.url.path
 
-        # Default: serve React index.html (SPA routing)
-        return FileResponse(str(DIST_DIR / "index.html"))
+            # Let API routes through normally
+            if path.startswith("/api/"):
+                return await call_next(request)
+
+            # Let static assets through
+            if path.startswith("/assets/"):
+                return await call_next(request)
+
+            # For everything else, try to serve the file, fallback to index.html
+            file_path = DIST_DIR / path.lstrip("/")
+            if file_path.is_file():
+                return FileResponse(str(file_path))
+
+            # SPA fallback: serve index.html for client-side routing
+            return FileResponse(str(DIST_DIR / "index.html"))
+
+    app.add_middleware(SPAFilterMiddleware)
+
 else:
     @app.get("/")
     async def root():
