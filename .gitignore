@@ -10,3 +10,9 @@ __pycache__/
 *.swo
 .DS_Store
 Thumbs.db
+Data_Legend_deploy.zip
+databricks.exe
+
+# Large data files - only keep parquet and small xlsx
+data/facilities.csv
+data/india_post_pin_directory.csv

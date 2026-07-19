@@ -22,10 +22,7 @@ def load_facilities() -> pd.DataFrame:
             return pd.read_parquet(_data_path(fname))
         except Exception:
             pass
-    try:
-        return pd.read_csv(_data_path("facilities.csv"), on_bad_lines="skip", engine="python")
-    except Exception:
-        return pd.DataFrame()
+    return pd.DataFrame()
 
 
 @st.cache_data(show_spinner=False)
