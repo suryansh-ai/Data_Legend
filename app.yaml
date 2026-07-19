@@ -1,7 +1,7 @@
 name: data-legend
 description: Building the Trust Layer for Indian Healthcare
 
-command: streamlit run app/main.py --server.port 8501
+command: ["streamlit", "run", "app/main.py", "--server.port", "8501"]
 
 env:
   - name: STREAMLIT_SERVER_HEADLESS
