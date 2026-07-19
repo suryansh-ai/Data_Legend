@@ -11,9 +11,16 @@ import pandas as pd
 from typing import Optional
 
 _df: Optional[pd.DataFrame] = None
+_district_df: Optional[pd.DataFrame] = None
 
 # Detect if we're on Databricks
 _ON_DATABRICKS = bool(os.getenv("DATABRICKS_WAREHOUSE_ID"))
+
+# Column name aliases for backward compatibility with old column names
+# The new master dataset uses: city, state
+# Old datasets used: address_city, address_stateOrRegion
+_STATE_COL = None
+_CITY_COL = None
 
 
 def _find_data_dir() -> str:
@@ -63,14 +70,27 @@ def _ensure_trust_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _load_from_parquet() -> Optional[pd.DataFrame]:
-    """Try loading from local parquet files."""
-    for fname in ["facilities_scored.parquet", "facilities.parquet"]:
+    """Try loading from local parquet files. Prefers facilities_master.parquet."""
+    global _STATE_COL, _CITY_COL
+
+    # Priority order: master > scored > generic
+    for fname in ["facilities_master.parquet", "facilities_scored.parquet", "facilities.parquet"]:
         fpath = _data_path(fname)
         if os.path.exists(fpath):
             try:
                 df = pd.read_parquet(fpath)
                 if len(df) > 0:
-                    print(f"[data] Loaded {len(df)} facilities from parquet: {fpath}")
+                    # Detect column names
+                    if "state" in df.columns:
+                        _STATE_COL = "state"
+                        _CITY_COL = "city"
+                    elif "address_stateOrRegion" in df.columns:
+                        _STATE_COL = "address_stateOrRegion"
+                        _CITY_COL = "address_city"
+                    else:
+                        _STATE_COL = "address_stateOrRegion"
+                        _CITY_COL = "address_city"
+                    print(f"[data] Loaded {len(df)} facilities from {fname} (state_col={_STATE_COL})")
                     return df
             except Exception as e:
                 print(f"[data] Error loading {fpath}: {e}")
@@ -173,6 +193,22 @@ def get_facilities_df() -> pd.DataFrame:
     return _df
 
 
+def get_district_health_df() -> pd.DataFrame:
+    """Load district health data from NFHS-5."""
+    global _district_df
+    if _district_df is not None and not _district_df.empty:
+        return _district_df
+    fpath = _data_path("district_health.parquet")
+    if os.path.exists(fpath):
+        try:
+            _district_df = pd.read_parquet(fpath)
+            print(f"[data] Loaded {len(_district_df)} districts from NFHS-5")
+            return _district_df
+        except Exception as e:
+            print(f"[data] Error loading district health: {e}")
+    return pd.DataFrame()
+
+
 def get_facility_by_id(facility_id: str) -> Optional[dict]:
     df = get_facilities_df()
     if df.empty:
@@ -195,17 +231,19 @@ def get_dataset_stats() -> dict:
             "with_description": 0, "with_capability": 0, "with_procedure": 0,
             "with_equipment": 0, "with_specialties": 0, "with_doctors": 0, "with_capacity": 0,
         }
+    sc = _STATE_COL or "state"
+    cc = _CITY_COL or "city"
     return {
         "total": len(df),
-        "states": int(df["address_stateOrRegion"].nunique()),
-        "cities": int(df["address_city"].nunique()),
-        "with_description": int(df["description"].notna().sum()),
-        "with_capability": int(df["capability"].notna().sum()) if "capability" in df.columns else 0,
-        "with_procedure": int(df["procedure"].notna().sum()) if "procedure" in df.columns else 0,
-        "with_equipment": int(df["equipment"].notna().sum()) if "equipment" in df.columns else 0,
-        "with_specialties": int(df["specialties"].notna().sum()) if "specialties" in df.columns else 0,
-        "with_doctors": int(df["numberDoctors"].notna().sum()) if "numberDoctors" in df.columns else 0,
-        "with_capacity": int(df["capacity"].notna().sum()) if "capacity" in df.columns else 0,
+        "states": int(df[sc].nunique()) if sc in df.columns else 0,
+        "cities": int(df[cc].nunique()) if cc in df.columns else 0,
+        "with_description": int(df["_has_description"].sum()) if "_has_description" in df.columns else int(df["description"].notna().sum()),
+        "with_capability": int(df["_has_capability"].sum()) if "_has_capability" in df.columns else int(df["capability"].notna().sum()) if "capability" in df.columns else 0,
+        "with_procedure": int(df["_has_procedure"].sum()) if "_has_procedure" in df.columns else int(df["procedure"].notna().sum()) if "procedure" in df.columns else 0,
+        "with_equipment": int(df["_has_equipment"].sum()) if "_has_equipment" in df.columns else int(df["equipment"].notna().sum()) if "equipment" in df.columns else 0,
+        "with_specialties": int(df["_has_specialties"].sum()) if "_has_specialties" in df.columns else int(df["specialties"].notna().sum()) if "specialties" in df.columns else 0,
+        "with_doctors": int(df["_has_doctors"].sum()) if "_has_doctors" in df.columns else int(df["numberDoctors"].notna().sum()) if "numberDoctors" in df.columns else 0,
+        "with_capacity": int(df["_has_capacity"].sum()) if "_has_capacity" in df.columns else int(df["capacity"].notna().sum()) if "capacity" in df.columns else 0,
     }
 
 
@@ -213,11 +251,12 @@ def get_column_completeness() -> dict:
     df = get_facilities_df()
     if df.empty:
         return {}
-    total = len(df)
+    sc = _STATE_COL or "state"
+    cc = _CITY_COL or "city"
     key_cols = [
         "name", "description", "capability", "procedure", "equipment",
         "specialties", "numberDoctors", "capacity",
-        "address_stateOrRegion", "address_city", "latitude", "longitude",
+        sc, cc, "latitude", "longitude",
     ]
     return {col: int(df[col].notna().sum()) for col in key_cols if col in df.columns}
 
@@ -226,12 +265,13 @@ def get_state_stats() -> list[dict]:
     df = get_facilities_df()
     if df.empty:
         return []
-    grouped = df.groupby("address_stateOrRegion").agg(
+    sc = _STATE_COL or "state"
+    grouped = df.groupby(sc).agg(
         total=("unique_id", "count"),
         avg_trust=("_trust_score", "mean"),
         low_trust_count=("_trust_score", lambda x: (x < 30).sum()),
     ).reset_index()
-    grouped = grouped.rename(columns={"address_stateOrRegion": "state"})
+    grouped = grouped.rename(columns={sc: "state"})
     grouped["avg_trust"] = grouped["avg_trust"].fillna(0).round(1)
     grouped["low_trust_count"] = grouped["low_trust_count"].fillna(0).astype(int)
     return grouped.sort_values("total", ascending=False).to_dict("records")

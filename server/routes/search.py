@@ -4,7 +4,7 @@ Search API — Natural language search across facilities.
 
 import math
 from fastapi import APIRouter, Query
-from server.data_loader import get_facilities_df
+from server.data_loader import get_facilities_df, _STATE_COL, _CITY_COL
 
 router = APIRouter(tags=["search"])
 
@@ -21,6 +21,8 @@ def search_facilities(
     if df.empty:
         return {"items": [], "total": 0, "page": 1, "limit": limit, "pages": 0}
 
+    sc = _STATE_COL or "state"
+    cc = _CITY_COL or "city"
     q_lower = q.lower()
 
     # Multi-field search with relevance scoring
@@ -29,8 +31,8 @@ def search_facilities(
         score = 0
         name = str(row.get("name", "")).lower()
         desc = str(row.get("description", "")).lower()
-        city = str(row.get("address_city", "")).lower()
-        state_name = str(row.get("address_stateOrRegion", "")).lower()
+        city = str(row.get(cc, "")).lower() if cc in row.index else ""
+        state_name = str(row.get(sc, "")).lower() if sc in row.index else ""
         capability = str(row.get("capability", "")).lower()
         specialties = str(row.get("specialties", "")).lower()
 
@@ -73,8 +75,8 @@ def search_facilities(
 
     filtered = df.loc[matched_indices]
 
-    if state:
-        filtered = filtered[filtered["address_stateOrRegion"] == state]
+    if state and sc in filtered.columns:
+        filtered = filtered[filtered[sc] == state]
     if trust_signal:
         filtered = filtered[filtered["_trust_signal"] == trust_signal]
 
