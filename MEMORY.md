@@ -10,11 +10,17 @@
 ## Databricks Workspace
 - **Workspace URL**: `https://dbc-bc97011a-f032.cloud.databricks.com`
 - **Org ID**: `7474647855860628`
-- **App name**: `data-legend-v2`
-- **App URL**: `https://data-legend-v2-7474647855860628.aws.databricksapps.com`
-- **App ID**: `cea04a49-6121-499f-9d3d-ccc09a3314ce`
-- **Service principal**: `app-33ksvr data-legend-v2` (ID: `76926135758045`)
-- **Token**: (stored locally in env, not committed — Apps REST API only, lacks workspace scope)
+- **App v2**: `data-legend-v2` (legacy)
+  - URL: `https://data-legend-v2-7474647855860628.aws.databricksapps.com`
+  - App ID: `cea04a49-6121-499f-9d3d-ccc09a3314ce`
+- **App v3 (CURRENT)**: `data-legend-v3` ✅ LIVE
+  - URL: `https://data-legend-v3-7474647855860628.aws.databricksapps.com`
+  - App ID: `ccd425cd-0571-4658-ba65-4869f61f5ee1`
+  - Deployment ID: `01f1835df3911abe9694d9e1ca553301`
+  - Service Principal: `app-33ksvr data-legend-v3` (ID: `78241870169220`)
+  - Status: RUNNING (Compute: ACTIVE, Deployment: SUCCEEDED)
+  - Git: `https://github.com/suryansh-ai/Data_Legend.git` branch `main`
+- **Token**: (stored in `~/.databrickscfg`, not committed — Apps REST API only, lacks workspace scope)
 - **App compute**: MEDIUM (Up to 2 vCPUs, 6 GB memory)
 - **Creator**: `fortestsubject2026@gmail.com`
 
