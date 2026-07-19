@@ -20,3 +20,9 @@ client/dist/
 # Large data files - only keep parquet and small xlsx
 data/facilities.csv
 data/india_post_pin_directory.csv
+
+# Deployment scripts with secrets
+scripts/deploy.py
+scripts/poll_deploy.py
+data/Explore_databricks*.csv
+data/data_legend_local.db
