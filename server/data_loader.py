@@ -1,5 +1,10 @@
 """
-Data Loader — Parquet-based data loading with caching.
+Data Loader — Multi-source data loading with fallback chain.
+
+Priority:
+  1. Parquet files (fastest, 0ms cold start)
+  2. SQL Warehouse (Databricks, for complex analytics)
+  3. Empty DataFrame (graceful degradation)
 """
 
 import os
@@ -15,6 +20,7 @@ def _data_path(filename: str) -> str:
 
 
 def load_facilities() -> pd.DataFrame:
+    """Load facilities from parquet — instant."""
     global _df
     if _df is not None and not _df.empty:
         return _df
@@ -25,6 +31,17 @@ def load_facilities() -> pd.DataFrame:
             return _df
         except Exception:
             pass
+
+    # Fallback: try SQL Warehouse
+    try:
+        from server.sql_connector import warehouse_query_df, is_available
+        if is_available():
+            df = warehouse_query_df("SELECT * FROM facilities")
+            if df is not None and not df.empty:
+                _df = df
+                return _df
+    except Exception:
+        pass
 
     _df = pd.DataFrame()
     return _df
@@ -44,7 +61,6 @@ def get_facility_by_id(facility_id: str) -> Optional[dict]:
     if match.empty:
         return None
     row = match.iloc[0].to_dict()
-    # Convert NaN to None
     for k, v in row.items():
         if pd.isna(v):
             row[k] = None
@@ -107,3 +123,30 @@ def get_trust_distribution() -> dict:
         return {}
     counts = df["_trust_signal"].value_counts()
     return {str(k): int(v) for k, v in counts.items()}
+
+
+def get_data_source_info() -> dict:
+    """Report which data source is active."""
+    df = get_facilities_df()
+    source = "none"
+    if not df.empty:
+        if _df is not None and os.path.exists(_data_path("facilities_scored.parquet")):
+            source = "parquet"
+        else:
+            source = "sql_warehouse"
+    try:
+        from server.sql_connector import is_available as wh_available
+        warehouse = wh_available()
+    except Exception:
+        warehouse = False
+    try:
+        from server.lakebase import db
+        persistence = db.get_backend()
+    except Exception:
+        persistence = "memory"
+    return {
+        "data_source": source,
+        "facility_count": len(df) if not df.empty else 0,
+        "warehouse_available": warehouse,
+        "persistence_backend": persistence,
+    }

@@ -10,6 +10,10 @@ run:
   command: ["npm", "start"]
   env:
     PYTHONPATH: "."
+    LAKEBASE_ENDPOINT:
+      valueFrom: postgres
+    DATABRICKS_WAREHOUSE_ID:
+      valueFrom: sql-warehouse
   resources:
     memory: 6G
     cpus: 2

@@ -1,37 +1,82 @@
 """
 Lakebase Client — Persistence layer for notes, overrides, shortlists.
-Falls back to in-memory storage when Lakebase is unavailable.
+
+On Databricks Apps:
+  - PGHOST, PGUSER, PGDATABASE, PGPORT are auto-injected
+  - LAKEBASE_ENDPOINT must be set via app.yaml (valueFrom: postgres)
+  - OAuth token generated via databricks.sdk
+
+Local dev:
+  - Falls back to SQLite when PGHOST is not set
 """
 
 import os
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+_SQLITE_PATH = str(_PROJECT_ROOT / "data" / "data_legend_local.db")
+
+# Databricks Lakebase env vars (auto-injected by platform)
+PGHOST = os.getenv("PGHOST", "")
+PGPORT = os.getenv("PGPORT", "5432")
+PGDATABASE = os.getenv("PGDATABASE", "databricks_postgres")
+PGUSER = os.getenv("PGUSER", "")
+LAKEBASE_ENDPOINT = os.getenv("LAKEBASE_ENDPOINT", "")
+
+
+def _get_lakebase_token() -> Optional[str]:
+    """Generate OAuth token for Lakebase via databricks.sdk."""
+    if not LAKEBASE_ENDPOINT:
+        return None
+    try:
+        from databricks.sdk import WorkspaceClient
+        w = WorkspaceClient()
+        resp = w.postgres.generate_database_credential(endpoint=LAKEBASE_ENDPOINT)
+        return resp.token
+    except Exception:
+        return None
 
 
 class LakebaseClient:
     def __init__(self):
         self.connection = None
+        self.backend = "memory"
         self._connect()
 
     def _connect(self):
         self._init_memory_store()
-        try:
-            import psycopg2
-            host = os.getenv("LAKEBASE_HOST", "")
-            if not host:
+
+        # Try Lakebase (Databricks Apps)
+        if PGHOST:
+            try:
+                import psycopg2
+                token = _get_lakebase_token()
+                self.connection = psycopg2.connect(
+                    host=PGHOST,
+                    port=PGPORT,
+                    database=PGDATABASE,
+                    user=PGUSER,
+                    password=token or "",
+                    sslmode="require",
+                    connect_timeout=5,
+                )
+                self.backend = "lakebase"
+                self._init_schema()
                 return
-            self.connection = psycopg2.connect(
-                host=host,
-                port=os.getenv("LAKEBASE_PORT", "5432"),
-                database=os.getenv("LAKEBASE_DB", "data_legend"),
-                user=os.getenv("LAKEBASE_USER", "postgres"),
-                password=os.getenv("LAKEBASE_PASSWORD", ""),
-                connect_timeout=5,
-            )
-            self._init_schema()
+            except Exception:
+                self.connection = None
+
+        # Fallback to SQLite (local dev)
+        try:
+            self.connection = sqlite3.connect(_SQLITE_PATH, check_same_thread=False)
+            self.backend = "sqlite"
+            self._init_schema_sqlite()
         except Exception:
             self.connection = None
-            self._init_memory_store()
+            self.backend = "memory"
 
     def _init_memory_store(self):
         self.notes: dict[str, list] = {}
@@ -39,6 +84,7 @@ class LakebaseClient:
         self.shortlists: dict[str, list[str]] = {}
 
     def _init_schema(self):
+        """Create tables for Lakebase (Postgres)."""
         if not self.connection:
             return
         cursor = self.connection.cursor()
@@ -72,6 +118,41 @@ class LakebaseClient:
         self.connection.commit()
         cursor.close()
 
+    def _init_schema_sqlite(self):
+        """Create tables for SQLite fallback."""
+        if not self.connection:
+            return
+        cursor = self.connection.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                facility_id TEXT NOT NULL,
+                note TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS overrides (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                facility_id TEXT NOT NULL UNIQUE,
+                original_score REAL,
+                new_score REAL NOT NULL,
+                reason TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shortlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                facility_id TEXT NOT NULL,
+                list_name TEXT DEFAULT 'default',
+                added_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(facility_id, list_name)
+            )
+        """)
+        self.connection.commit()
+        cursor.close()
+
     def add_note(self, facility_id: str, note: str) -> bool:
         if self.connection:
             try:
@@ -81,7 +162,8 @@ class LakebaseClient:
                 cursor.close()
                 return True
             except Exception:
-                self.connection.rollback()
+                if self.backend == "lakebase":
+                    self.connection.rollback()
         if facility_id not in self.notes:
             self.notes[facility_id] = []
         self.notes[facility_id].append({"note": note, "created_at": datetime.now().isoformat()})
@@ -114,7 +196,8 @@ class LakebaseClient:
                 cursor.close()
                 return True
             except Exception:
-                self.connection.rollback()
+                if self.backend == "lakebase":
+                    self.connection.rollback()
         self.overrides[facility_id] = {
             "original_score": original_score, "new_score": new_score,
             "reason": reason, "created_at": datetime.now().isoformat(),
@@ -144,7 +227,8 @@ class LakebaseClient:
                 cursor.close()
                 return True
             except Exception:
-                self.connection.rollback()
+                if self.backend == "lakebase":
+                    self.connection.rollback()
         if list_name not in self.shortlists:
             self.shortlists[list_name] = []
         if facility_id not in self.shortlists[list_name]:
@@ -172,10 +256,14 @@ class LakebaseClient:
                 cursor.close()
                 return True
             except Exception:
-                self.connection.rollback()
+                if self.backend == "lakebase":
+                    self.connection.rollback()
         if list_name in self.shortlists and facility_id in self.shortlists[list_name]:
             self.shortlists[list_name].remove(facility_id)
         return True
+
+    def get_backend(self) -> str:
+        return self.backend
 
 
 db = LakebaseClient()

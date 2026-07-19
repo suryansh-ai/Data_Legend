@@ -1,6 +1,7 @@
 """
 Data Legend — FastAPI Backend
 Serves React frontend + API endpoints for healthcare facility intelligence.
+Three-layer data architecture: Parquet + SQL Warehouse + Lakebase.
 """
 
 import os
@@ -17,16 +18,41 @@ from server.routes import facilities, trust, search, persistence, stats
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup/shutdown events."""
+    """Startup: initialize all data sources."""
     from server.data_loader import load_facilities
-    load_facilities()  # Pre-load on startup
+    from server.sql_connector import init_warehouse
+    from server.lakebase import db
+
+    # Layer 1: Load parquet (fastest)
+    load_facilities()
+
+    # Layer 2: Connect to SQL Warehouse (analytics)
+    wh_ok = init_warehouse()
+    print(f"[startup] SQL Warehouse: {'connected' if wh_ok else 'unavailable (using parquet)'}")
+
+    # Layer 3: Connect to Lakebase (persistence)
+    print(f"[startup] Persistence: {db.get_backend()}")
+
     yield
+
+    # Shutdown: close connections
+    try:
+        from server.sql_connector import _connection
+        if _connection:
+            _connection.close()
+    except Exception:
+        pass
+    try:
+        if db.connection:
+            db.connection.close()
+    except Exception:
+        pass
 
 
 app = FastAPI(
     title="Data Legend",
-    description="Healthcare Facility Intelligence Platform",
-    version="1.0.0",
+    description="Healthcare Facility Intelligence Platform — 3-layer data architecture",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -43,6 +69,14 @@ app.include_router(trust.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(persistence.router, prefix="/api")
 app.include_router(stats.router, prefix="/api")
+
+
+@app.get("/api/health")
+def health_check():
+    """Health check with data source status."""
+    from server.data_loader import get_data_source_info
+    return get_data_source_info()
+
 
 # Serve React build
 DIST_DIR = Path(__file__).parent / "client" / "dist"
