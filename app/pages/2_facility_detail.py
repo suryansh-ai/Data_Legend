@@ -10,21 +10,31 @@ sys.path.insert(0, _APP_DIR)
 sys.path.insert(0, _PROJECT_ROOT)
 from components.css import inject_css, nav
 from utils.data_loader import load_facilities, get_facility_by_id
-from utils.lakebase import LakebaseClient
-from pipeline.trust_engine import TrustEngine
+
+try:
+    from utils.lakebase import LakebaseClient
+    _db = LakebaseClient()
+except Exception:
+    _db = None
+
+try:
+    from pipeline.trust_engine import TrustEngine
+    _engine = TrustEngine()
+except Exception:
+    _engine = None
 
 try:
     import mlflow
     MLFLOW_AVAILABLE = True
-except ImportError:
+except Exception:
     MLFLOW_AVAILABLE = False
 
 st.set_page_config(page_title="Facility Detail — Data Legend", page_icon="🏥", layout="wide")
 inject_css()
 nav("trust")
 
-engine = TrustEngine()
-db = LakebaseClient()
+engine = _engine
+db = _db
 
 def pjson(v):
     if v is None: return []
