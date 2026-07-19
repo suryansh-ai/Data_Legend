@@ -13,6 +13,10 @@ Thumbs.db
 Data_Legend_deploy.zip
 databricks.exe
 
+# Node
+node_modules/
+client/dist/
+
 # Large data files - only keep parquet and small xlsx
 data/facilities.csv
 data/india_post_pin_directory.csv

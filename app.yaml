@@ -1,8 +1,15 @@
-name: data-legend
-description: Healthcare Facility Intelligence App
+build:
+  commands:
+    build:
+      - npm install
+      - npm run build
+  env:
+    NODE_ENV: production
 
-command: ["streamlit", "run", "app/main.py"]
-
-env:
-  - name: STREAMLIT_GATHER_USAGE_STATS
-    value: "false"
+run:
+  command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+  env:
+    PYTHONPATH: "."
+  resources:
+    memory: 6G
+    cpus: 2
