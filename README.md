@@ -37,6 +37,17 @@
 
 ---
 
+## 🌐 Live Deployment
+
+Experience Data Legend live on both deployment platforms:
+
+| Platform | Live URL |
+|----------|----------|
+| 🚀 Databricks Apps | https://data-legend-v3-7474647855860628.aws.databricksapps.com/ |
+| ▲ Vercel | https://hacknation-databrick-nu.vercel.app/ |
+
+---
+
 ## 📋 Overview
 
 **Data Legend** transforms messy Indian healthcare facility records into a structured, trust-rated intelligence system. Built for the **Databricks Apps & Agents for Good 2026** hackathon, it analyzes **9,947+ clinics** across **34+ states/UTs** to verify capability claims, detect coverage deserts, and power smart referral workflows.
